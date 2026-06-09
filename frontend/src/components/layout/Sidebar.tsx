@@ -1,21 +1,16 @@
 import { NavLink } from 'react-router-dom'
+import { useUser, useClerk } from '@clerk/clerk-react'
+import { useAppStore } from '@/store'
 import {
-  LayoutDashboard,
-  Wand2,
-  Lightbulb,
-  Users,
-  Layers,
-  Megaphone,
-  FlaskConical,
-  BarChart3,
-  GitCompare,
-  Bot,
-  Settings,
+  LayoutDashboard, Wand2, Lightbulb, Users, Layers, Megaphone,
+  FlaskConical, BarChart3, GitCompare, Bot, Settings, LogOut,
 } from 'lucide-react'
+
+const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''
 
 const navItems = [
   { section: 'Main' },
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/', badge: null },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/', badge: null as string | null },
   { label: 'AI Campaign Studio', icon: Wand2, path: '/ai-studio', badge: 'New' },
   { label: 'Opportunities', icon: Lightbulb, path: '/opportunities', badge: '5' },
   { label: 'Agent Proposals', icon: Bot, path: '/proposals', badge: '3' },
@@ -35,6 +30,58 @@ const navItems = [
   { section: 'System' },
   { label: 'Settings', icon: Settings, path: '/settings', badge: null },
 ]
+
+function FallbackFooter() {
+  const token = useAppStore((s) => s.token)
+  const logout = useAppStore((s) => s.logout)
+
+  return (
+    <div className="xeno-sidebar-footer">
+      <div className="xeno-sidebar-user">
+        <div className="xeno-sidebar-avatar">?</div>
+        <div className="xeno-sidebar-user-info">
+          <div className="xeno-sidebar-user-name">Dev User</div>
+          <div className="xeno-sidebar-user-role">Admin</div>
+        </div>
+      </div>
+      {token && (
+        <button className="xeno-sidebar-logout" title="Sign out" onClick={logout}>
+          <LogOut size={16} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ClerkFooter() {
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const logout = useAppStore((s) => s.logout)
+
+  const handleSignOut = () => {
+    logout()
+    signOut()
+  }
+
+  return (
+    <div className="xeno-sidebar-footer">
+      <div className="xeno-sidebar-user">
+        <div className="xeno-sidebar-avatar">
+          {user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || '?'}
+        </div>
+        <div className="xeno-sidebar-user-info">
+          <div className="xeno-sidebar-user-name">
+            {user?.fullName || user?.emailAddresses?.[0]?.emailAddress || 'User'}
+          </div>
+          <div className="xeno-sidebar-user-role">Admin</div>
+        </div>
+      </div>
+      <button className="xeno-sidebar-logout" title="Sign out" onClick={handleSignOut}>
+        <LogOut size={16} />
+      </button>
+    </div>
+  )
+}
 
 export function Sidebar() {
   return (
@@ -64,6 +111,7 @@ export function Sidebar() {
           )
         )}
       </nav>
+      {CLERK_KEY ? <ClerkFooter /> : <FallbackFooter />}
     </div>
   )
 }

@@ -78,7 +78,7 @@ interface AppState {
   token: string | null
   toggleSidebar: () => void
   setCurrentPage: (page: string) => void
-  setToken: (token: string) => void
+  setToken: (token: string | null) => void
   logout: () => void
 }
 

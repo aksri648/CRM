@@ -154,6 +154,28 @@ export async function triggerScheduler(jobType: string): Promise<any> {
   return request(`/scheduler/trigger/${jobType}`, { method: "POST" })
 }
 
+export async function listABTests(params?: {
+  page?: number; page_size?: number; status?: string
+}): Promise<{ ab_tests: any[]; total: number; page: number; page_size: number }> {
+  const q = new URLSearchParams()
+  if (params?.page) q.set("page", String(params.page))
+  if (params?.page_size) q.set("page_size", String(params.page_size))
+  if (params?.status) q.set("status", params.status)
+  const s = q.toString()
+  return request(`/ab-tests${s ? `?${s}` : ""}`)
+}
+
+export async function getABTest(id: string): Promise<any> {
+  return request(`/ab-tests/${id}`)
+}
+
+export async function createABTest(data: {
+  name: string; campaign_id: string; hypothesis?: string;
+  audience_split?: any; success_metric?: string; min_confidence?: number
+}): Promise<any> {
+  return request("/ab-tests", { method: "POST", body: JSON.stringify(data) })
+}
+
 export async function listProducts(params?: {
   page?: number; page_size?: number; category?: string
 }): Promise<{ products: any[]; total: number; page: number; page_size: number }> {

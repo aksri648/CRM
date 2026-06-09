@@ -15,6 +15,7 @@ from app.schemas import (
     MarketingGoalCreate, MarketingGoalResponse,
     CampaignPerformanceResponse, DashboardStatsResponse,
     ApprovalResponse, ApprovalAction, CallbackEvent, PipelineStatusResponse,
+    ABTestCreate, ABTestResponse,
 )
 from app.services.customer_service import list_customers, get_customer, get_customer_orders, get_lifecycle_distribution
 from app.services.campaign_service import create_campaign, get_campaign, list_campaigns, launch_campaign, create_marketing_goal, list_marketing_goals, list_opportunities
@@ -441,6 +442,49 @@ async def list_proposals(db: AsyncSession = Depends(get_db), current_user: dict 
     return [{"run_id": str(r.id), "run_type": r.run_type, "status": r.status,
              "created_at": r.created_at.isoformat() if r.created_at else None,
              "input": r.input_data, "output": r.output_data, "error": r.error} for r in runs]
+
+
+@router.get("/ab-tests")
+async def list_ab_tests(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), status: str | None = None, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    from app.models.campaign import ABTest
+    query = select(ABTest)
+    if status:
+        query = query.where(ABTest.status == status)
+    query = query.order_by(ABTest.created_at.desc())
+    total_q = select(func.count()).select_from(query.subquery())
+    total = (await db.execute(total_q)).scalar() or 0
+    query = query.offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(query)
+    tests = result.scalars().all()
+    return {
+        "ab_tests": [ABTestResponse.model_validate(t).model_dump() for t in tests],
+        "total": total, "page": page, "page_size": page_size,
+    }
+
+
+@router.get("/ab-tests/{test_id}", response_model=ABTestResponse)
+async def get_ab_test(test_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    from app.models.campaign import ABTest
+    result = await db.execute(select(ABTest).where(ABTest.id == test_id))
+    test = result.scalar_one_or_none()
+    if not test:
+        raise HTTPException(status_code=404, detail="A/B test not found")
+    return test
+
+
+@router.post("/ab-tests", response_model=ABTestResponse)
+async def create_ab_test(data: ABTestCreate, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    from app.models.campaign import ABTest
+    test = ABTest(
+        campaign_id=data.campaign_id, name=data.name, hypothesis=data.hypothesis,
+        audience_split=data.audience_split, success_metric=data.success_metric,
+        min_confidence=data.min_confidence, status="running",
+        started_at=datetime.utcnow(),
+    )
+    db.add(test)
+    await db.commit()
+    await db.refresh(test)
+    return test
 
 
 @router.get("/")

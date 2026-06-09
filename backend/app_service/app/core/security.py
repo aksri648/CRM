@@ -6,6 +6,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from app.config import settings
+from app.core.clerk_auth import verify_clerk_token
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -34,4 +35,10 @@ def decode_access_token(token: str) -> dict:
 
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
-    return decode_access_token(credentials.credentials)
+    token = credentials.credentials
+    if settings.CLERK_ISSUER:
+        try:
+            return await verify_clerk_token(token)
+        except HTTPException:
+            pass
+    return decode_access_token(token)

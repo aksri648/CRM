@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
 
+    CLERK_ISSUER: str = ""
+
     AGENT_SERVICE_URL: str = "http://agent-service:8002"
     COMMUNICATION_SERVICE_URL: str = "http://communication-service:8003"
 
