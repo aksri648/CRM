@@ -1,58 +1,119 @@
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Sparkles, CheckCircle, XCircle } from 'lucide-react'
+import { Sparkles, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { listProposals, listApprovals, respondToApproval, discoverOpportunities } from '@/lib/api'
 
-const proposals = [
-  {
-    id: 'P-001',
-    title: 'Summer Sneaker Campaign',
-    audience: '1,245 Customers',
-    channel: 'WhatsApp',
-    predictedCTR: '18%',
-    predictedRevenue: '₹45,000',
-    reasoning: 'Sneaker engagement increased 22% this week. Summer collection launch with 45 new SKUs.',
-    confidence: 87,
-    status: 'pending',
-    createdAt: '2026-06-10',
-  },
-  {
-    id: 'P-002',
-    title: 'Cold Brew Coffee Promotion',
-    audience: '3,210 Customers',
-    channel: 'SMS + Email',
-    predictedCTR: '15%',
-    predictedRevenue: '₹32,000',
-    reasoning: 'Cold brew searches up 40% in last 7 days. Temperature rising trend detected.',
-    confidence: 82,
-    status: 'pending',
-    createdAt: '2026-06-09',
-  },
-  {
-    id: 'P-003',
-    title: 'Festival Season - Dormant Reactivation',
-    audience: '2,847 Customers',
-    channel: 'WhatsApp',
-    predictedCTR: '21%',
-    predictedRevenue: '₹75,000',
-    reasoning: 'Festival season approaching. Historical data shows 3.2x higher conversion during this period.',
-    confidence: 91,
-    status: 'approved',
-    createdAt: '2026-06-08',
-  },
-  {
-    id: 'P-004',
-    title: 'Cart Recovery - Weekend Flash',
-    audience: '876 Customers',
-    channel: 'RCS',
-    predictedCTR: '24%',
-    predictedRevenue: '₹28,000',
-    reasoning: 'Cart abandonment at 68%. Weekend flash sales historically recover 12% of abandoned carts.',
-    confidence: 78,
-    status: 'rejected',
-    createdAt: '2026-06-07',
-  },
-]
+type Proposal = {
+  id: string
+  title: string
+  audience: string
+  channel: string
+  predictedCTR: string
+  predictedRevenue: string
+  reasoning: string
+  confidence: number
+  status: 'pending' | 'approved' | 'rejected'
+  createdAt: string
+}
+
+function mapProposal(raw: any, approval?: any): Proposal {
+  const status = approval?.status || raw?.status || 'pending'
+  return {
+    id: raw?.id || raw?.proposalId || raw?._id || '',
+    title: raw?.title || raw?.campaignName || raw?.name || 'Untitled',
+    audience: raw?.audience || raw?.targetAudience || raw?.segment || `${raw?.audienceSize || 0} Customers`,
+    channel: raw?.channel || raw?.channels || raw?.platform || 'Unknown',
+    predictedCTR: raw?.predictedCTR || raw?.ctr || raw?.estimatedCTR || `${raw?.ctrPercent || 0}%`,
+    predictedRevenue: raw?.predictedRevenue || raw?.revenue || raw?.estimatedRevenue || `₹${raw?.revenueAmount || 0}`,
+    reasoning: raw?.reasoning || raw?.aiReasoning || raw?.rationale || raw?.description || '',
+    confidence: raw?.confidence ?? raw?.confidenceScore ?? raw?.score ?? 0,
+    status: status === 'approved' ? 'approved' : status === 'rejected' ? 'rejected' : 'pending',
+    createdAt: raw?.createdAt || raw?.created || raw?.date || raw?.generatedAt || '',
+  }
+}
 
 export function AgentProposals() {
+  const [proposals, setProposals] = useState<Proposal[]>([])
+  const [loading, setLoading] = useState(true)
+  const [scanning, setScanning] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  async function fetchData() {
+    try {
+      setLoading(true)
+      setError(null)
+      const [rawProposals, approvals] = await Promise.all([
+        listProposals(),
+        listApprovals(),
+      ])
+      const approvalMap = new Map<string, any>()
+      for (const a of approvals || []) {
+        const key = a?.proposalId || a?.id || a?._id
+        if (key) approvalMap.set(key, a)
+      }
+      const merged = (rawProposals || []).map((p: any) => {
+        const key = p?.id || p?.proposalId || p?._id
+        return mapProposal(p, key ? approvalMap.get(key) : undefined)
+      })
+      setProposals(merged)
+    } catch {
+      setError('Failed to load proposals.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+  }, [])
+
+  async function handleScan() {
+    try {
+      setScanning(true)
+      await discoverOpportunities()
+      await fetchData()
+    } catch {
+      setError('Scan failed. Please try again.')
+    } finally {
+      setScanning(false)
+    }
+  }
+
+  async function handleAction(id: string, action: string) {
+    try {
+      setActionLoading(`${id}-${action}`)
+      await respondToApproval(id, action)
+      await fetchData()
+    } catch {
+      setError('Action failed. Please try again.')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 320 }}>
+        <Loader2 size={32} className="animate-spin" color="#14b8a6" />
+      </div>
+    )
+  }
+
+  if (error && proposals.length === 0) {
+    return (
+      <div>
+        <div className="xeno-header">
+          <div>
+            <h1>Agent Proposals</h1>
+            <p className="xeno-header-subtitle">AI-generated campaign proposals awaiting your review</p>
+          </div>
+        </div>
+        <div style={{ textAlign: 'center', padding: 48, color: '#ef4444' }}>{error}</div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="xeno-header">
@@ -61,12 +122,23 @@ export function AgentProposals() {
           <p className="xeno-header-subtitle">AI-generated campaign proposals awaiting your review</p>
         </div>
         <div className="xeno-header-actions">
-          <Button variant="outline" size="sm"><Sparkles size={14} /> Trigger Scan</Button>
+          <Button variant="outline" size="sm" onClick={handleScan} disabled={scanning}>
+            {scanning ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+            {scanning ? 'Scanning...' : 'Trigger Scan'}
+          </Button>
         </div>
       </div>
 
+      {error && (
+        <div style={{ textAlign: 'center', padding: 16, color: '#ef4444', marginBottom: 16 }}>{error}</div>
+      )}
+
+      {proposals.length === 0 && !loading && (
+        <div style={{ textAlign: 'center', padding: 48, color: '#64748b' }}>No proposals found.</div>
+      )}
+
       {proposals.map((p, i) => (
-        <div key={i} className="xeno-proposal-card">
+        <div key={p.id || i} className="xeno-proposal-card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -104,8 +176,24 @@ export function AgentProposals() {
 
           {p.status === 'pending' && (
             <div style={{ display: 'flex', gap: 10 }}>
-              <Button size="sm" style={{ background: '#14b8a6' }}><CheckCircle size={14} /> Approve</Button>
-              <Button size="sm" variant="outline"><XCircle size={14} /> Reject</Button>
+              <Button
+                size="sm"
+                style={{ background: '#14b8a6' }}
+                onClick={() => handleAction(p.id, 'approved')}
+                disabled={actionLoading === `${p.id}-approved`}
+              >
+                {actionLoading === `${p.id}-approved` ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleAction(p.id, 'rejected')}
+                disabled={actionLoading === `${p.id}-rejected`}
+              >
+                {actionLoading === `${p.id}-rejected` ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
+                Reject
+              </Button>
               <Button size="sm" variant="outline">Edit</Button>
             </div>
           )}

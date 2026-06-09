@@ -1,8 +1,11 @@
+// TODO: Replace mock data with real A/B test API endpoints once they exist on the backend
+
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Sparkles, Trophy } from 'lucide-react'
+import { Sparkles, Trophy, Loader2 } from 'lucide-react'
 
-const abTests = [
+const mockAbTests = [
   {
     name: 'Summer Sale Offer Test',
     status: 'Completed',
@@ -33,6 +36,27 @@ const abTests = [
 ]
 
 export function ABTests() {
+  const [loading, setLoading] = useState(true)
+  const [abTests] = useState(mockAbTests)
+
+  useEffect(() => {
+    setLoading(false)
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="xeno-header">
+        <div>
+          <h1>A/B Tests</h1>
+          <p className="xeno-header-subtitle">Design and analyze campaign experiments</p>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 60 }}>
+          <Loader2 size={32} className="animate-spin" style={{ color: '#14b8a6' }} />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="xeno-header">
