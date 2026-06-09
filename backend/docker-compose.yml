@@ -1,0 +1,92 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: xeno
+      POSTGRES_PASSWORD: xeno
+      POSTGRES_DB: xeno
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U xeno"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app-service:
+    build:
+      context: ./app_service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://xeno:xeno@db:5432/xeno
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: xeno-dev-secret-key
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      AGENT_SERVICE_URL: http://agent-service:8002
+      COMMUNICATION_SERVICE_URL: http://communication-service:8003
+      DEBUG: "true"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  agent-service:
+    build:
+      context: ./agent_service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      APP_SERVICE_URL: http://app-service:8001
+      DEBUG: "true"
+    depends_on:
+      app-service: { condition: service_started }
+    restart: unless-stopped
+
+  communication-service:
+    build:
+      context: ./communication_service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://xeno:xeno@db:5432/xeno
+      APP_SERVICE_URL: http://app-service:8001
+      DEBUG: "true"
+    depends_on:
+      db: { condition: service_healthy }
+      app-service: { condition: service_started }
+    restart: unless-stopped
+
+  seed:
+    build:
+      context: ./app_service
+      dockerfile: Dockerfile
+    command: python -m app.seed.seed
+    environment:
+      DATABASE_URL: postgresql+asyncpg://xeno:xeno@db:5432/xeno
+      REDIS_URL: redis://redis:6379/0
+      DEBUG: "false"
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+
+volumes:
+  postgres_data:

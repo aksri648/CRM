@@ -1,0 +1,1601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xeno AI-Native Mini CRM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: #1e2a3a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+        
+        .logo {
+            padding: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo span {
+            color: #4ecdc4;
+        }
+        
+        .nav-menu {
+            flex: 1;
+            padding: 10px 0;
+        }
+        
+        .nav-item {
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .nav-item:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+        
+        .nav-item.active {
+            background-color: rgba(78, 205, 196, 0.2);
+            border-left: 3px solid #4ecdc4;
+        }
+        
+        .nav-item i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: #1e2a3a;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4ecdc4;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3dbdb5;
+        }
+        
+        .btn-secondary {
+            background-color: #f1f2f6;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e1e2e6;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1e2a3a;
+            margin-bottom: 5px;
+        }
+        
+        .stat-change {
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .stat-change.positive {
+            color: #2ecc71;
+        }
+        
+        .stat-change.negative {
+            color: #e74c3c;
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e2a3a;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #f1f2f6;
+        }
+        
+        th {
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-sent {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-delivered {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .status-failed {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .status-opened {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .status-clicked {
+            background-color: #fff8e1;
+            color: #f57f17;
+        }
+        
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        .ai-assistant {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 350px;
+            height: 500px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .ai-assistant.collapsed {
+            height: 60px;
+            width: 60px;
+            border-radius: 50%;
+            overflow: hidden;
+        }
+        
+        .ai-assistant-header {
+            background-color: #4ecdc4;
+            color: white;
+            padding: 15px;
+            border-radius: 10px 10px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .ai-assistant.collapsed .ai-assistant-header {
+            border-radius: 50%;
+            height: 60px;
+            width: 60px;
+            padding: 0;
+            justify-content: center;
+        }
+        
+        .ai-assistant-body {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .ai-assistant.collapsed .ai-assistant-body {
+            display: none;
+        }
+        
+        .ai-message {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .ai-message.user {
+            align-items: flex-end;
+        }
+        
+        .message-bubble {
+            padding: 10px 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            font-size: 14px;
+        }
+        
+        .ai-message.assistant .message-bubble {
+            background-color: #f1f2f6;
+            color: #333;
+            border-bottom-left-radius: 5px;
+        }
+        
+        .ai-message.user .message-bubble {
+            background-color: #4ecdc4;
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .ai-assistant-input {
+            padding: 15px;
+            border-top: 1px solid #f1f2f6;
+            display: flex;
+        }
+        
+        .ai-assistant.collapsed .ai-assistant-input {
+            display: none;
+        }
+        
+        .ai-assistant-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            outline: none;
+        }
+        
+        .ai-assistant-input button {
+            margin-left: 10px;
+            background-color: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .segment-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .segment-info h3 {
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        .segment-info p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .segment-size {
+            background-color: #f1f2f6;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        
+        .customer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+        
+        .customer-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+        }
+        
+        .customer-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .customer-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: #f1f2f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #4ecdc4;
+            margin-right: 15px;
+        }
+        
+        .customer-details h3 {
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+        
+        .customer-details p {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .customer-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #f1f2f6;
+        }
+        
+        .customer-stat {
+            text-align: center;
+        }
+        
+        .customer-stat-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e2a3a;
+        }
+        
+        .customer-stat-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .campaign-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .campaign-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .campaign-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1e2a3a;
+        }
+        
+        .campaign-meta {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .campaign-meta-item {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .campaign-meta-item strong {
+            color: #333;
+        }
+        
+        .campaign-performance {
+            display: flex;
+            gap: 30px;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #f1f2f6;
+        }
+        
+        .performance-metric {
+            text-align: center;
+        }
+        
+        .performance-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1e2a3a;
+            margin-bottom: 5px;
+        }
+        
+        .performance-label {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .channel-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            margin-right: 5px;
+        }
+        
+        .whatsapp {
+            background-color: #25d366;
+            color: white;
+        }
+        
+        .sms {
+            background-color: #ff9800;
+            color: white;
+        }
+        
+        .email {
+            background-color: #2196f3;
+            color: white;
+        }
+        
+        .rcs {
+            background-color: #9c27b0;
+            color: white;
+        }
+        
+        .search-bar {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        .search-input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            outline: none;
+        }
+        
+        .search-button {
+            padding: 10px 15px;
+            background-color: #4ecdc4;
+            color: white;
+            border: none;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .filter-group {
+            flex: 1;
+        }
+        
+        .filter-label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .filter-select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            outline: none;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">
+            <span>X</span>eno
+        </div>
+        <div class="nav-menu">
+            <div class="nav-item active" data-section="dashboard">
+                <i class="fas fa-home"></i>
+                Dashboard
+            </div>
+            <div class="nav-item" data-section="customers">
+                <i class="fas fa-users"></i>
+                Customers
+            </div>
+            <div class="nav-item" data-section="segments">
+                <i class="fas fa-layer-group"></i>
+                Segments
+            </div>
+            <div class="nav-item" data-section="campaigns">
+                <i class="fas fa-bullhorn"></i>
+                Campaigns
+            </div>
+            <div class="nav-item" data-section="analytics">
+                <i class="fas fa-chart-bar"></i>
+                Analytics
+            </div>
+            <div class="nav-item" data-section="settings">
+                <i class="fas fa-cog"></i>
+                Settings
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content">
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="content-section active">
+            <div class="header">
+                <h1>Dashboard</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary">Export Data</button>
+                    <button class="btn btn-primary">New Campaign</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Customers</div>
+                    <div class="stat-value">12,486</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 5.2% from last month
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Active Campaigns</div>
+                    <div class="stat-value">8</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 2 more than last week
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Messages Sent</div>
+                    <div class="stat-value">34,521</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 12.3% from last month
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Conversion Rate</div>
+                    <div class="stat-value">3.8%</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-arrow-down"></i> 0.5% from last month
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Recent Campaigns</h2>
+                    <button class="btn btn-secondary">View All</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Campaign Name</th>
+                            <th>Channel</th>
+                            <th>Status</th>
+                            <th>Sent</th>
+                            <th>Opened</th>
+                            <th>Clicked</th>
+                            <th>Converted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Summer Sale Announcement</td>
+                            <td><span class="channel-icon whatsapp"><i class="fab fa-whatsapp"></i></span> WhatsApp</td>
+                            <td><span class="status-badge status-delivered">Delivered</span></td>
+                            <td>5,432</td>
+                            <td>3,876 (71.3%)</td>
+                            <td>1,234 (22.7%)</td>
+                            <td>247 (4.5%)</td>
+                        </tr>
+                        <tr>
+                            <td>New Collection Launch</td>
+                            <td><span class="channel-icon email"><i class="fas fa-envelope"></i></span> Email</td>
+                            <td><span class="status-badge status-opened">Opened</span></td>
+                            <td>8,765</td>
+                            <td>4,321 (49.3%)</td>
+                            <td>987 (11.3%)</td>
+                            <td>156 (1.8%)</td>
+                        </tr>
+                        <tr>
+                            <td>Loyalty Rewards Reminder</td>
+                            <td><span class="channel-icon sms"><i class="fas fa-sms"></i></span> SMS</td>
+                            <td><span class="status-badge status-clicked">Clicked</span></td>
+                            <td>2,345</td>
+                            <td>1,876 (80.0%)</td>
+                            <td>654 (27.9%)</td>
+                            <td>98 (4.2%)</td>
+                        </tr>
+                        <tr>
+                            <td>Flash Sale - 50% Off</td>
+                            <td><span class="channel-icon rcs"><i class="fas fa-comment-dots"></i></span> RCS</td>
+                            <td><span class="status-badge status-sent">Sent</span></td>
+                            <td>3,456</td>
+                            <td>0 (0%)</td>
+                            <td>0 (0%)</td>
+                            <td>0 (0%)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Top Performing Segments</h2>
+                    <button class="btn btn-secondary">View All</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Segment Name</th>
+                            <th>Customer Count</th>
+                            <th>Avg. Open Rate</th>
+                            <th>Avg. Click Rate</th>
+                            <th>Avg. Conversion Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>High Value Customers</td>
+                            <td>1,234</td>
+                            <td>82.3%</td>
+                            <td>34.5%</td>
+                            <td>8.7%</td>
+                        </tr>
+                        <tr>
+                            <td>Recent Purchasers</td>
+                            <td>2,345</td>
+                            <td>76.8%</td>
+                            <td>28.9%</td>
+                            <td>6.5%</td>
+                        </tr>
+                        <tr>
+                            <td>Cart Abandoners</td>
+                            <td>876</td>
+                            <td>65.4%</td>
+                            <td>22.3%</td>
+                            <td>5.2%</td>
+                        </tr>
+                        <tr>
+                            <td>Frequent Shoppers</td>
+                            <td>1,567</td>
+                            <td>72.1%</td>
+                            <td>26.7%</td>
+                            <td>7.1%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Customers Section -->
+        <div id="customers" class="content-section">
+            <div class="header">
+                <h1>Customers</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary">Import Customers</button>
+                    <button class="btn btn-primary">Add Customer</button>
+                </div>
+            </div>
+            
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search customers by name, email, or phone number...">
+                <button class="search-button"><i class="fas fa-search"></i></button>
+            </div>
+            
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label class="filter-label">Purchase Frequency</label>
+                    <select class="filter-select">
+                        <option>All</option>
+                        <option>One-time</option>
+                        <option>Occasional</option>
+                        <option>Frequent</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Last Purchase</label>
+                    <select class="filter-select">
+                        <option>Any time</option>
+                        <option>Last 7 days</option>
+                        <option>Last 30 days</option>
+                        <option>Last 90 days</option>
+                        <option>More than 90 days ago</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Average Order Value</label>
+                    <select class="filter-select">
+                        <option>Any</option>
+                        <option>Under $50</option>
+                        <option>$50 - $100</option>
+                        <option>$100 - $200</option>
+                        <option>Over $200</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Status</label>
+                    <select class="filter-select">
+                        <option>All</option>
+                        <option>Active</option>
+                        <option>Inactive</option>
+                        <option>Churned</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="customer-grid">
+                <div class="customer-card">
+                    <div class="customer-header">
+                        <div class="customer-avatar">JD</div>
+                        <div class="customer-details">
+                            <h3>John Doe</h3>
+                            <p>john.doe@example.com</p>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">$456.78</div>
+                            <div class="customer-stat-label">Total Spent</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">12</div>
+                            <div class="customer-stat-label">Orders</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">5 days</div>
+                            <div class="customer-stat-label">Last Purchase</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customer-card">
+                    <div class="customer-header">
+                        <div class="customer-avatar">JS</div>
+                        <div class="customer-details">
+                            <h3>Jane Smith</h3>
+                            <p>jane.smith@example.com</p>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">$789.45</div>
+                            <div class="customer-stat-label">Total Spent</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">18</div>
+                            <div class="customer-stat-label">Orders</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">2 days</div>
+                            <div class="customer-stat-label">Last Purchase</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customer-card">
+                    <div class="customer-header">
+                        <div class="customer-avatar">RJ</div>
+                        <div class="customer-details">
+                            <h3>Robert Johnson</h3>
+                            <p>robert.j@example.com</p>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">$234.56</div>
+                            <div class="customer-stat-label">Total Spent</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">6</div>
+                            <div class="customer-stat-label">Orders</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">45 days</div>
+                            <div class="customer-stat-label">Last Purchase</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customer-card">
+                    <div class="customer-header">
+                        <div class="customer-avatar">EW</div>
+                        <div class="customer-details">
+                            <h3>Emily Wilson</h3>
+                            <p>emily.w@example.com</p>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">$1,234.90</div>
+                            <div class="customer-stat-label">Total Spent</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">24</div>
+                            <div class="customer-stat-label">Orders</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">1 day</div>
+                            <div class="customer-stat-label">Last Purchase</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customer-card">
+                    <div class="customer-header">
+                        <div class="customer-avatar">MB</div>
+                        <div class="customer-details">
+                            <h3>Michael Brown</h3>
+                            <p>michael.b@example.com</p>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">$567.89</div>
+                            <div class="customer-stat-label">Total Spent</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">9</div>
+                            <div class="customer-stat-label">Orders</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">12 days</div>
+                            <div class="customer-stat-label">Last Purchase</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="customer-card">
+                    <div class="customer-header">
+                        <div class="customer-avatar">SD</div>
+                        <div class="customer-details">
+                            <h3>Sarah Davis</h3>
+                            <p>sarah.d@example.com</p>
+                        </div>
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">$890.12</div>
+                            <div class="customer-stat-label">Total Spent</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">15</div>
+                            <div class="customer-stat-label">Orders</div>
+                        </div>
+                        <div class="customer-stat">
+                            <div class="customer-stat-value">8 days</div>
+                            <div class="customer-stat-label">Last Purchase</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Segments Section -->
+        <div id="segments" class="content-section">
+            <div class="header">
+                <h1>Customer Segments</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary">Create Segment</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">AI-Suggested Segments</h2>
+                    <span class="status-badge status-delivered">New</span>
+                </div>
+                <p style="margin-bottom: 15px; color: #666;">Based on your customer data, our AI has identified these high-potential segments:</p>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>High-Value At-Risk Customers</h3>
+                        <p>Customers with high lifetime value who haven't made a purchase in the last 30 days</p>
+                    </div>
+                    <div class="segment-size">342 customers</div>
+                </div>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>Potential Brand Advocates</h3>
+                        <p>Frequent shoppers with high engagement rates and positive sentiment</p>
+                    </div>
+                    <div class="segment-size">567 customers</div>
+                </div>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>Product Category Affinity - Footwear</h3>
+                        <p>Customers who have purchased footwear 3+ times and viewed footwear products in the last 7 days</p>
+                    </div>
+                    <div class="segment-size">891 customers</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Your Segments</h2>
+                    <button class="btn btn-secondary">View All</button>
+                </div>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>VIP Customers</h3>
+                        <p>Customers with lifetime value over $500 and at least 10 purchases</p>
+                    </div>
+                    <div class="segment-size">1,234 customers</div>
+                </div>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>Cart Abandoners - Last 7 Days</h3>
+                        <p>Customers who added items to cart but didn't complete purchase in the last 7 days</p>
+                    </div>
+                    <div class="segment-size">456 customers</div>
+                </div>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>New Customers - First Purchase</h3>
+                        <p>Customers who made their first purchase in the last 30 days</p>
+                    </div>
+                    <div class="segment-size">789 customers</div>
+                </div>
+                
+                <div class="segment-card">
+                    <div class="segment-info">
+                        <h3>Seasonal Shoppers - Summer</h3>
+                        <p>Customers who primarily shop during summer months based on historical data</p>
+                    </div>
+                    <div class="segment-size">2,345 customers</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Campaigns Section -->
+        <div id="campaigns" class="content-section">
+            <div class="header">
+                <h1>Campaigns</h1>
+                <div class="header-actions">
+                    <button class="btn btn-primary">Create Campaign</button>
+                </div>
+            </div>
+            
+            <div class="campaign-card">
+                <div class="campaign-header">
+                    <h2 class="campaign-title">Summer Sale Announcement</h2>
+                    <span class="status-badge status-delivered">Delivered</span>
+                </div>
+                <div class="campaign-meta">
+                    <div class="campaign-meta-item">
+                        Channel: <span class="channel-icon whatsapp"><i class="fab fa-whatsapp"></i></span> WhatsApp
+                    </div>
+                    <div class="campaign-meta-item">
+                        Segment: High Value Customers
+                    </div>
+                    <div class="campaign-meta-item">
+                        Sent: June 10, 2026 10:00 AM
+                    </div>
+                </div>
+                <p style="margin-bottom: 15px;">Get ready for our biggest summer sale! Enjoy up to 50% off on selected items. Exclusive early access for our valued customers.</p>
+                <div class="campaign-performance">
+                    <div class="performance-metric">
+                        <div class="performance-value">5,432</div>
+                        <div class="performance-label">Sent</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">3,876</div>
+                        <div class="performance-label">Delivered</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">2,456</div>
+                        <div class="performance-label">Opened</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">1,234</div>
+                        <div class="performance-label">Clicked</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">247</div>
+                        <div class="performance-label">Converted</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="campaign-card">
+                <div class="campaign-header">
+                    <h2 class="campaign-title">New Collection Launch</h2>
+                    <span class="status-badge status-opened">Opened</span>
+                </div>
+                <div class="campaign-meta">
+                    <div class="campaign-meta-item">
+                        Channel: <span class="channel-icon email"><i class="fas fa-envelope"></i></span> Email
+                    </div>
+                    <div class="campaign-meta-item">
+                        Segment: All Customers
+                    </div>
+                    <div class="campaign-meta-item">
+                        Sent: June 8, 2026 2:00 PM
+                    </div>
+                </div>
+                <p style="margin-bottom: 15px;">Discover our latest collection inspired by summer vibes. Fresh designs, premium fabrics, and colors that pop. Be the first to shop the new arrivals.</p>
+                <div class="campaign-performance">
+                    <div class="performance-metric">
+                        <div class="performance-value">8,765</div>
+                        <div class="performance-label">Sent</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">8,234</div>
+                        <div class="performance-label">Delivered</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">4,321</div>
+                        <div class="performance-label">Opened</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">987</div>
+                        <div class="performance-label">Clicked</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">156</div>
+                        <div class="performance-label">Converted</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="campaign-card">
+                <div class="campaign-header">
+                    <h2 class="campaign-title">Loyalty Rewards Reminder</h2>
+                    <span class="status-badge status-clicked">Clicked</span>
+                </div>
+                <div class="campaign-meta">
+                    <div class="campaign-meta-item">
+                        Channel: <span class="channel-icon sms"><i class="fas fa-sms"></i></span> SMS
+                    </div>
+                    <div class="campaign-meta-item">
+                        Segment: Loyalty Members
+                    </div>
+                    <div class="campaign-meta-item">
+                        Sent: June 5, 2026 11:30 AM
+                    </div>
+                </div>
+                <p style="margin-bottom: 15px;">You have 500 loyalty points expiring soon! Redeem them for exclusive rewards before June 30. Shop now and earn more points.</p>
+                <div class="campaign-performance">
+                    <div class="performance-metric">
+                        <div class="performance-value">2,345</div>
+                        <div class="performance-label">Sent</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">2,198</div>
+                        <div class="performance-label">Delivered</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">1,876</div>
+                        <div class="performance-label">Opened</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">654</div>
+                        <div class="performance-label">Clicked</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">98</div>
+                        <div class="performance-label">Converted</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="campaign-card">
+                <div class="campaign-header">
+                    <h2 class="campaign-title">Flash Sale - 50% Off</h2>
+                    <span class="status-badge status-sent">Sent</span>
+                </div>
+                <div class="campaign-meta">
+                    <div class="campaign-meta-item">
+                        Channel: <span class="channel-icon rcs"><i class="fas fa-comment-dots"></i></span> RCS
+                    </div>
+                    <div class="campaign-meta-item">
+                        Segment: Recent Purchasers
+                    </div>
+                    <div class="campaign-meta-item">
+                        Sent: June 12, 2026 9:00 AM
+                    </div>
+                </div>
+                <p style="margin-bottom: 15px;">24-HOUR FLASH SALE! Get 50% off on your favorite items. Use code FLASH50 at checkout. Limited time offer!</p>
+                <div class="campaign-performance">
+                    <div class="performance-metric">
+                        <div class="performance-value">3,456</div>
+                        <div class="performance-label">Sent</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">Pending</div>
+                        <div class="performance-label">Delivered</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">Pending</div>
+                        <div class="performance-label">Opened</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">Pending</div>
+                        <div class="performance-label">Clicked</div>
+                    </div>
+                    <div class="performance-metric">
+                        <div class="performance-value">Pending</div>
+                        <div class="performance-label">Converted</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Section -->
+        <div id="analytics" class="content-section">
+            <div class="header">
+                <h1>Analytics</h1>
+                <div class="header-actions">
+                    <div class="filter-group" style="width: 150px;">
+                        <select class="filter-select">
+                            <option>Last 7 days</option>
+                            <option>Last 30 days</option>
+                            <option>Last 90 days</option>
+                            <option>Custom Range</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary">Export Report</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Total Messages Sent</div>
+                    <div class="stat-value">45,678</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 15.3% from previous period
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Average Delivery Rate</div>
+                    <div class="stat-value">96.7%</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 1.2% from previous period
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Average Open Rate</div>
+                    <div class="stat-value">62.4%</div>
+                    <div class="stat-change negative">
+                        <i class="fas fa-arrow-down"></i> 2.1% from previous period
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">Average Conversion Rate</div>
+                    <div class="stat-value">4.2%</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i> 0.8% from previous period
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Performance by Channel</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>Messages Sent</th>
+                            <th>Delivery Rate</th>
+                            <th>Open Rate</th>
+                            <th>Click Rate</th>
+                            <th>Conversion Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="channel-icon whatsapp"><i class="fab fa-whatsapp"></i></span> WhatsApp</td>
+                            <td>15,432</td>
+                            <td>98.2%</td>
+                            <td>78.5%</td>
+                            <td>34.2%</td>
+                            <td>5.8%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="channel-icon email"><i class="fas fa-envelope"></i></span> Email</td>
+                            <td>12,345</td>
+                            <td>95.6%</td>
+                            <td>52.3%</td>
+                            <td>18.7%</td>
+                            <td>3.2%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="channel-icon sms"><i class="fas fa-sms"></i></span> SMS</td>
+                            <td>10,567</td>
+                            <td>97.8%</td>
+                            <td>85.2%</td>
+                            <td>42.1%</td>
+                            <td>4.5%</td>
+                        </tr>
+                        <tr>
+                            <td><span class="channel-icon rcs"><i class="fas fa-comment-dots"></i></span> RCS</td>
+                            <td>7,334</td>
+                            <td>94.5%</td>
+                            <td>72.8%</td>
+                            <td>28.9%</td>
+                            <td>4.1%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Top Performing Campaigns</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Campaign Name</th>
+                            <th>Channel</th>
+                            <th>Open Rate</th>
+                            <th>Click Rate</th>
+                            <th>Conversion Rate</th>
+                            <th>Revenue Generated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Loyalty Rewards Reminder</td>
+                            <td><span class="channel-icon sms"><i class="fas fa-sms"></i></span> SMS</td>
+                            <td>85.2%</td>
+                            <td>27.9%</td>
+                            <td>4.2%</td>
+                            <td>$12,345</td>
+                        </tr>
+                        <tr>
+                            <td>Summer Sale Announcement</td>
+                            <td><span class="channel-icon whatsapp"><i class="fab fa-whatsapp"></i></span> WhatsApp</td>
+                            <td>78.5%</td>
+                            <td>22.7%</td>
+                            <td>4.5%</td>
+                            <td>$23,456</td>
+                        </tr>
+                        <tr>
+                            <td>Flash Sale - 50% Off</td>
+                            <td><span class="channel-icon rcs"><i class="fas fa-comment-dots"></i></span> RCS</td>
+                            <td>72.8%</td>
+                            <td>28.9%</td>
+                            <td>4.1%</td>
+                            <td>$18,901</td>
+                        </tr>
+                        <tr>
+                            <td>New Collection Launch</td>
+                            <td><span class="channel-icon email"><i class="fas fa-envelope"></i></span> Email</td>
+                            <td>52.3%</td>
+                            <td>11.3%</td>
+                            <td>1.8%</td>
+                            <td>$8,765</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Settings Section -->
+        <div id="settings" class="content-section">
+            <div class="header">
+                <h1>Settings</h1>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">Channel Configuration</h2>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Channel</th>
+                            <th>Status</th>
+                            <th>Configuration</th>
+                            <th>Last Tested</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="channel-icon whatsapp"><i class="fab fa-whatsapp"></i></span> WhatsApp</td>
+                            <td><span class="status-badge status-delivered">Connected</span></td>
+                            <td>Business API Configured</td>
+                            <td>June 10, 2026</td>
+                            <td><button class="btn btn-secondary">Test</button></td>
+                        </tr>
+                        <tr>
+                            <td><span class="channel-icon email"><i class="fas fa-envelope"></i></span> Email</td>
+                            <td><span class="status-badge status-delivered">Connected</span></td>
+                            <td>SMTP Configured</td>
+                            <td>June 8, 2026</td>
+                            <td><button class="btn btn-secondary">Test</button></td>
+                        </tr>
+                        <tr>
+                            <td><span class="channel-icon sms"><i class="fas fa-sms"></i></span> SMS</td>
+                            <td><span class="status-badge status-delivered">Connected</span></td>
+                            <td>Twilio API Configured</td>
+                            <td>June 5, 2026</td>
+                            <td><button class="btn btn-secondary">Test</button></td>
+                        </tr>
+                        <tr>
+                            <td><span class="channel-icon rcs"><i class="fas fa-comment-dots"></i></span> RCS</td>
+                            <td><span class="status-badge status-failed">Disconnected</span></td>
+                            <td>Not Configured</td>
+                            <td>Never</td>
+                            <td><button class="btn btn-primary">Setup</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <div class="section-header">
+                    <h2 class="section-title">AI Settings</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 15px;">
+                    <div>
+                        <label class="filter-label">AI Model</label>
+                        <select class="filter-select">
+                            <option>GPT-4 (Recommended)</option>
+                            <option>GPT-3.5 Turbo</option>
+                            <option>Claude 3</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="filter-label">AI Assistance Level</label>
+                        <select class="filter-select">
+                            <option>High - AI actively suggests and automates</option>
+                            <option>Medium - AI provides suggestions but requires approval</option>
+                            <option>Low - AI only responds when asked</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="filter-label">Data Privacy</label>
+                        <select class="filter-select">
+                            <option>Use anonymized data only</option>
+                            <option>Use pseudonymized data</option>
+                            <option>Use full customer data (with consent)</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" style="width: fit-content;">Save AI Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="ai-assistant" id="aiAssistant">
+        <div class="ai-assistant-header" id="aiAssistantHeader">
+            <div>Xeno AI Assistant</div>
+            <i class="fas fa-chevron-down" id="aiAssistantToggle"></i>
+        </div>
+        <div class="ai-assistant-body">
+            <div class="ai-message assistant">
+                <div class="message-bubble">
+                    Hello! I'm your Xeno AI assistant. I can help you create campaigns, analyze customer data, and optimize your marketing strategies. What would you like to do today?
+                </div>
+            </div>
+            <div class="ai-message user">
+                <div class="message-bubble">
+                    I want to create a campaign for customers who haven't purchased in the last 30 days.
+                </div>
+            </div>
+            <div class="ai-message assistant">
+                <div class="message-bubble">
+                    I've identified 1,234 customers who haven't made a purchase in the last 30 days. Based on their purchase history, I recommend a "We Miss You" campaign with a 15% discount code. Would you like me to create this campaign for you?
+                </div>
+            </div>
+            <div class="ai-message user">
+                <div class="message-bubble">
+                    Yes, please create it. What channel should I use?
+                </div>
+            </div>
+            <div class="ai-message assistant">
+                <div class="message-bubble">
+                    Based on the engagement data for this segment, WhatsApp would be most effective with an expected 78% open rate. Email is a good secondary option with a 52% expected open rate. Would you like to proceed with WhatsApp or use a multi-channel approach?
+                </div>
+            </div>
+        </div>
+        <div class="ai-assistant-input">
+            <input type="text" placeholder="Ask me anything...">
+            <button><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    
+    <script>
+        // Navigation functionality
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // Remove active class from all nav items
+                document.querySelectorAll('.nav-item').forEach(navItem => {
+                    navItem.classList.remove('active');
+                });
+                
+                // Add active class to clicked nav item
+                this.classList.add('active');
+                
+                // Hide all content sections
+                document.querySelectorAll('.content-section').forEach(section => {
+                    section.classList.remove('active');
+                });
+                
+                // Show the selected content section
+                const sectionId = this.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+        
+        // AI Assistant toggle functionality
+        const aiAssistant = document.getElementById('aiAssistant');
+        const aiAssistantHeader = document.getElementById('aiAssistantHeader');
+        const aiAssistantToggle = document.getElementById('aiAssistantToggle');
+        
+        aiAssistantHeader.addEventListener('click', function() {
+            aiAssistant.classList.toggle('collapsed');
+            
+            if (aiAssistant.classList.contains('collapsed')) {
+                aiAssistantToggle.className = 'fas fa-chevron-up';
+            } else {
+                aiAssistantToggle.className = 'fas fa-chevron-down';
+            }
+        });
+        
+        // AI Assistant input functionality
+        const aiAssistantInput = document.querySelector('.ai-assistant-input input');
+        const aiAssistantButton = document.querySelector('.ai-assistant-input button');
+        const aiAssistantBody = document.querySelector('.ai-assistant-body');
+        
+        function sendMessage() {
+            const message = aiAssistantInput.value.trim();
+            if (message === '') return;
+            
+            // Add user message
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'ai-message user';
+            userMessageDiv.innerHTML = `<div class="message-bubble">${message}</div>`;
+            aiAssistantBody.appendChild(userMessageDiv);
+            
+            // Clear input
+            aiAssistantInput.value = '';
+            
+            // Simulate AI response after a delay
+            setTimeout(() => {
+                const aiMessageDiv = document.createElement('div');
+                aiMessageDiv.className = 'ai-message assistant';
+                
+                // Generate a simple response based on the message
+                let response = '';
+                if (message.toLowerCase().includes('segment')) {
+                    response = "I can help you create customer segments. Would you like me to suggest some high-performing segments based on your customer data, or do you have specific criteria in mind?";
+                } else if (message.toLowerCase().includes('campaign')) {
+                    response = "I'd be happy to help you create a campaign. Could you tell me more about the goal of this campaign? For example, is it to re-engage inactive customers, promote a new product, or drive repeat purchases?";
+                } else if (message.toLowerCase().includes('analytics') || message.toLowerCase().includes('performance')) {
+                    response = "Based on your recent campaigns, WhatsApp has the highest engagement rate at 78%, followed by SMS at 85% open rate. Would you like me to provide more detailed analytics or suggest optimizations?";
+                } else {
+                    response = "I understand you're interested in " + message + ". Could you provide more details so I can assist you better? I can help with customer segmentation, campaign creation, performance analysis, and more.";
+                }
+                
+                aiMessageDiv.innerHTML = `<div class="message-bubble">${response}</div>`;
+                aiAssistantBody.appendChild(aiMessageDiv);
+                
+                // Scroll to bottom
+                aiAssistantBody.scrollTop = aiAssistantBody.scrollHeight;
+            }, 1000);
+            
+            // Scroll to bottom
+            aiAssistantBody.scrollTop = aiAssistantBody.scrollHeight;
+        }
+        
+        aiAssistantButton.addEventListener('click', sendMessage);
+        aiAssistantInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

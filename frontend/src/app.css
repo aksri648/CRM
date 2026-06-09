@@ -1,0 +1,798 @@
+/* ===== Xeno AI Campaign Studio - Custom Styles ===== */
+
+.xeno-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.xeno-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 20px rgba(0,0,0,0.15);
+  z-index: 100;
+}
+
+.xeno-logo {
+  padding: 20px;
+  font-size: 22px;
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: -0.5px;
+}
+
+.xeno-logo-icon {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.xeno-nav-section {
+  padding: 16px 20px 6px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255,255,255,0.3);
+  font-weight: 600;
+}
+
+.xeno-nav-menu {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.xeno-nav-item {
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.6);
+  position: relative;
+  border-left: 3px solid transparent;
+  text-decoration: none;
+}
+
+.xeno-nav-item:hover {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.9);
+}
+
+.xeno-nav-item.active {
+  background: rgba(20, 184, 166, 0.1);
+  color: #14b8a6;
+  border-left-color: #14b8a6;
+}
+
+.xeno-nav-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.xeno-nav-badge {
+  margin-left: auto;
+  background: #14b8a6;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.xeno-main {
+  flex: 1;
+  overflow-y: auto;
+  background: #f8fafc;
+}
+
+.xeno-page-content {
+  padding: 24px;
+  max-width: 1400px;
+}
+
+.xeno-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.xeno-header h1 {
+  font-size: 26px;
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.xeno-header-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.xeno-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.xeno-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.xeno-stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+}
+
+.xeno-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+}
+
+.xeno-stat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.xeno-stat-title {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.xeno-stat-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.xeno-stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+
+.xeno-stat-change {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.xeno-stat-change.positive { color: #16a34a; }
+.xeno-stat-change.negative { color: #dc2626; }
+
+.xeno-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.xeno-quick-action {
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.xeno-quick-action:hover {
+  border-color: #14b8a6;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.12);
+  transform: translateY(-2px);
+}
+
+.xeno-quick-action-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+  font-size: 20px;
+}
+
+.xeno-quick-action-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.xeno-quick-action-desc {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.xeno-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  padding: 24px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.xeno-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.xeno-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.xeno-channel-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.xeno-channel-whatsapp { background: #dcf8c6; color: #1a7a2e; }
+.xeno-channel-sms { background: #fff3e0; color: #e65100; }
+.xeno-channel-email { background: #e3f2fd; color: #0d47a1; }
+.xeno-channel-rcs { background: #f3e5f5; color: #6a1b9a; }
+
+.xeno-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.xeno-badge-success { background: #dcfce7; color: #15803d; }
+.xeno-badge-warning { background: #fef9c3; color: #a16207; }
+.xeno-badge-danger { background: #fee2e2; color: #b91c1c; }
+.xeno-badge-info { background: #dbeafe; color: #1d4ed8; }
+.xeno-badge-purple { background: #f3e8ff; color: #7c3aed; }
+.xeno-badge-gray { background: #f1f5f9; color: #475569; }
+
+.xeno-insight {
+  padding: 16px;
+  border-radius: 10px;
+  border-left: 3px solid;
+}
+
+.xeno-insight-opportunity { background: #f0fdfa; border-color: #14b8a6; }
+.xeno-insight-timing { background: #fffbeb; border-color: #f59e0b; }
+.xeno-insight-suggestion { background: #faf5ff; border-color: #7c3aed; }
+
+.xeno-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 20px;
+  background: #f8fafc;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.xeno-pipeline-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+}
+
+.xeno-pipeline-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.xeno-pipeline-label {
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.xeno-pipeline-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.xeno-pipeline-arrow {
+  width: 40px;
+  height: 2px;
+  background: #cbd5e1;
+  position: relative;
+  margin-bottom: 30px;
+  flex-shrink: 0;
+}
+
+.xeno-pipeline-arrow::after {
+  content: '›';
+  position: absolute;
+  right: -4px;
+  top: -11px;
+  font-size: 18px;
+  color: #94a3b8;
+}
+
+.xeno-search-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.xeno-search-box {
+  flex: 1;
+  position: relative;
+}
+
+.xeno-search-box input {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+  background: white;
+  transition: border-color 0.2s;
+}
+
+.xeno-search-box input:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+.xeno-search-box svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+.xeno-filter-chips {
+  display: flex;
+  gap: 8px;
+}
+
+.xeno-filter-chip {
+  padding: 8px 14px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+}
+
+.xeno-filter-chip:hover,
+.xeno-filter-chip.active {
+  border-color: #14b8a6;
+  background: #f0fdfa;
+  color: #0d9488;
+}
+
+.xeno-customer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.xeno-customer-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.xeno-customer-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+}
+
+.xeno-customer-card-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.xeno-customer-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.xeno-customer-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.xeno-customer-info p {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.xeno-customer-stats {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.xeno-customer-stat { text-align: center; }
+.xeno-customer-stat-value { font-size: 16px; font-weight: 700; color: #0f172a; }
+.xeno-customer-stat-label { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+.xeno-timeline {
+  position: relative;
+  padding-left: 24px;
+}
+
+.xeno-timeline::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.xeno-timeline-item {
+  position: relative;
+  padding-bottom: 24px;
+  padding-left: 20px;
+}
+
+.xeno-timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -20px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #14b8a6;
+  border: 2px solid white;
+  box-shadow: 0 0 0 2px #14b8a6;
+}
+
+.xeno-timeline-item.order::before { background: #3b82f6; box-shadow: 0 0 0 2px #3b82f6; }
+.xeno-timeline-item.campaign::before { background: #7c3aed; box-shadow: 0 0 0 2px #7c3aed; }
+
+.xeno-timeline-date {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.xeno-timeline-content {
+  background: white;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+.xeno-opportunity-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.xeno-opportunity-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  border-color: #14b8a6;
+}
+
+.xeno-opportunity-emoji {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.xeno-studio-container {
+  display: flex;
+  gap: 24px;
+  height: calc(100vh - 140px);
+}
+
+.xeno-studio-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+}
+
+.xeno-studio-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.xeno-studio-input {
+  padding: 16px 20px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  gap: 10px;
+}
+
+.xeno-studio-input input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  outline: none;
+  font-size: 14px;
+}
+
+.xeno-studio-input input:focus {
+  border-color: #14b8a6;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.1);
+}
+
+.xeno-message {
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.xeno-message.user { align-items: flex-end; }
+
+.xeno-message-bubble {
+  padding: 12px 18px;
+  border-radius: 14px;
+  max-width: 80%;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.xeno-message.assistant .xeno-message-bubble {
+  background: #f8fafc;
+  color: #0f172a;
+  border-bottom-left-radius: 4px;
+}
+
+.xeno-message.user .xeno-message-bubble {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.xeno-ab-variants {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.xeno-ab-variant {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.xeno-ab-variant.winner {
+  border-color: #14b8a6;
+  background: #f0fdfa;
+}
+
+.xeno-ab-variant-label {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  background: white;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.xeno-ab-variant.winner .xeno-ab-variant-label {
+  color: #0d9488;
+}
+
+.xeno-ab-variant-message {
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.xeno-ab-stats {
+  display: flex;
+  gap: 16px;
+}
+
+.xeno-ab-stat { text-align: center; flex: 1; }
+.xeno-ab-stat-value { font-size: 20px; font-weight: 700; color: #0f172a; }
+.xeno-ab-stat-label { font-size: 11px; color: #64748b; }
+
+.xeno-segment-conditions {
+  border: 2px dashed #e2e8f0;
+  border-radius: 10px;
+  padding: 24px;
+  min-height: 120px;
+}
+
+.xeno-condition-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.xeno-condition-logic {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.xeno-funnel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 20px;
+}
+
+.xeno-funnel-stage {
+  height: 44px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.xeno-funnel-stage:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.xeno-funnel-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.xeno-studio-welcome {
+  text-align: center;
+  padding: 60px 40px;
+}
+
+.xeno-studio-welcome h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 12px;
+}
+
+.xeno-studio-welcome p {
+  color: #64748b;
+  margin-bottom: 24px;
+  font-size: 15px;
+}
+
+.xeno-suggestion-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.xeno-suggestion-chip {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #475569;
+}
+
+.xeno-suggestion-chip:hover {
+  border-color: #14b8a6;
+  color: #0d9488;
+  background: #f0fdfa;
+}
+
+.xeno-proposal-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.04);
+  padding: 24px;
+  margin-bottom: 16px;
+  transition: all 0.2s;
+}
+
+.xeno-proposal-card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
