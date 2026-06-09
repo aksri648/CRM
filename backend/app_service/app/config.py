@@ -7,7 +7,6 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     DATABASE_URL: str = "postgresql+asyncpg://xeno:xeno@localhost:5432/xeno"
-    REDIS_URL: str = "redis://localhost:6379/0"
 
     JWT_SECRET_KEY: str = "super-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"

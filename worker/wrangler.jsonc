@@ -1,0 +1,15 @@
+{
+  "name": "xeno-api-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-12-01",
+  "kv_namespaces": [
+    {
+      "binding": "API_CACHE",
+      "id": "fc3027c460a94e29934e72f3df7aa68a"
+    }
+  ],
+  "vars": {
+    "APP_SERVICE_URL": "https://xeno-crm-app-service.onrender.com",
+    "DEFAULT_TTL": "300"
+  }
+}

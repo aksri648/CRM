@@ -17,16 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
   app-service:
     build:
       context: ./app_service
@@ -35,7 +25,6 @@ services:
       - "8001:8001"
     environment:
       DATABASE_URL: postgresql+asyncpg://xeno:xeno@db:5432/xeno
-      REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: xeno-dev-secret-key
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
@@ -44,7 +33,6 @@ services:
       DEBUG: "true"
     depends_on:
       db: { condition: service_healthy }
-      redis: { condition: service_healthy }
     restart: unless-stopped
 
   agent-service:
@@ -82,7 +70,6 @@ services:
     command: python -m app.seed.seed
     environment:
       DATABASE_URL: postgresql+asyncpg://xeno:xeno@db:5432/xeno
-      REDIS_URL: redis://redis:6379/0
       DEBUG: "false"
     depends_on:
       db: { condition: service_healthy }
