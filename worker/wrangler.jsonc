@@ -8,8 +8,14 @@
       "id": "fc3027c460a94e29934e72f3df7aa68a"
     }
   ],
+  "secrets_store_secrets": [
+    {
+      "binding": "APP_SERVICE_URL",
+      "store_id": "a71fd3acae8f4e34a5b45dd93826f35d",
+      "secret_name": "APP_SERVICE_URL"
+    }
+  ],
   "vars": {
-    "APP_SERVICE_URL": "https://xeno-crm-app-service.onrender.com",
     "DEFAULT_TTL": "300"
   }
 }

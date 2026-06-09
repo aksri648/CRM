@@ -75,13 +75,19 @@ export interface AIProposal {
 interface AppState {
   sidebarOpen: boolean
   currentPage: string
+  token: string | null
   toggleSidebar: () => void
   setCurrentPage: (page: string) => void
+  setToken: (token: string) => void
+  logout: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
   sidebarOpen: true,
   currentPage: 'dashboard',
+  token: null,
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
   setCurrentPage: (page) => set({ currentPage: page }),
+  setToken: (token) => set({ token }),
+  logout: () => set({ token: null }),
 }))

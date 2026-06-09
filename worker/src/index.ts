@@ -1,6 +1,10 @@
+interface SecretsBinding {
+  get(): Promise<string>;
+}
+
 interface Env {
   API_CACHE: KVNamespace;
-  APP_SERVICE_URL: string;
+  APP_SERVICE_URL: SecretsBinding;
   DEFAULT_TTL: string;
 }
 
@@ -27,18 +31,27 @@ function corsHeaders(origin: string): HeadersInit {
   };
 }
 
+async function getApiUrl(env: Env): Promise<string> {
+  try {
+    return await env.APP_SERVICE_URL.get();
+  } catch {
+    return "https://xeno-crm-app-service.onrender.com";
+  }
+}
+
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "*";
     const cors = corsHeaders(origin);
+    const appServiceUrl = await getApiUrl(env);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
     }
 
     if (INVALIDATE_METHODS.has(request.method)) {
-      const apiUrl = `${env.APP_SERVICE_URL}${url.pathname}${url.search}`;
+      const apiUrl = `${appServiceUrl}${url.pathname}${url.search}`;
       const resp = await fetch(apiUrl, { method: request.method, headers: request.headers, body: request.body });
       const respHeaders = new Headers(resp.headers);
       for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
@@ -62,7 +75,7 @@ export default {
         });
       }
 
-      const apiUrl = `${env.APP_SERVICE_URL}${url.pathname}${url.search}`;
+      const apiUrl = `${appServiceUrl}${url.pathname}${url.search}`;
       const resp = await fetch(apiUrl, { method: "GET", headers: request.headers });
       const respHeaders = new Headers(resp.headers);
       for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);
@@ -77,7 +90,7 @@ export default {
       return new Response(resp.body, { status: resp.status, headers: respHeaders });
     }
 
-    const apiUrl = `${env.APP_SERVICE_URL}${url.pathname}${url.search}`;
+    const apiUrl = `${appServiceUrl}${url.pathname}${url.search}`;
     const resp = await fetch(apiUrl, { method: request.method, headers: request.headers, body: request.body });
     const respHeaders = new Headers(resp.headers);
     for (const [k, v] of Object.entries(cors)) respHeaders.set(k, v);

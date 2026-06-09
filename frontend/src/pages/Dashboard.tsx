@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -5,28 +6,67 @@ import {
   TrendingUp, TrendingDown, Sparkles, Clock, Lightbulb,
   CloudUpload, Layers, Rocket, BarChart3, ArrowRight
 } from 'lucide-react'
-
-const stats = [
-  { title: 'Total Customers', value: '12,486', change: '+5.2%', icon: Users, color: '#3b82f6', bg: '#eff6ff', positive: true },
-  { title: 'Active Campaigns', value: '8', change: '+2 this week', icon: Megaphone, color: '#16a34a', bg: '#f0fdf4', positive: true },
-  { title: 'Messages Sent (30d)', value: '34.5K', change: '+12.3%', icon: Send, color: '#7c3aed', bg: '#faf5ff', positive: true },
-  { title: 'Revenue Attributed', value: '$63.5K', change: '-2.1%', icon: DollarSign, color: '#f59e0b', bg: '#fffbeb', positive: false },
-]
-
-const campaigns = [
-  { name: 'Summer Sale Announcement', channel: 'whatsapp', segment: 'High Value', status: 'success', statusLabel: 'Delivered', sent: '5,432', openRate: '71.3%', clickRate: '22.7%', revenue: '$23,456' },
-  { name: 'New Collection Launch', channel: 'email', segment: 'All Customers', status: 'purple', statusLabel: 'Opened', sent: '8,765', openRate: '49.3%', clickRate: '11.3%', revenue: '$8,765' },
-  { name: 'Loyalty Rewards Reminder', channel: 'sms', segment: 'Loyalty Members', status: 'warning', statusLabel: 'Clicked', sent: '2,345', openRate: '80.0%', clickRate: '27.9%', revenue: '$12,345' },
-  { name: 'Flash Sale - 50% Off', channel: 'rcs', segment: 'Recent Purchasers', status: 'info', statusLabel: 'Sending', sent: '3,456', openRate: '—', clickRate: '—', revenue: '—' },
-]
-
-const insights = [
-  { type: 'opportunity', icon: Lightbulb, color: '#14b8a6', title: 'Opportunity', text: '342 high-value customers haven\'t purchased in 30 days. A re-engagement campaign could recover ~$15K.' },
-  { type: 'timing', icon: Clock, color: '#f59e0b', title: 'Timing', text: 'WhatsApp campaigns sent between 10-11 AM show 23% higher open rates for your audience.' },
-  { type: 'suggestion', icon: Sparkles, color: '#7c3aed', title: 'Suggestion', text: 'Cart abandoners respond 2.5x better to SMS with discount codes vs. generic reminders.' },
-]
+import { getDashboardStats, listCampaigns } from '@/lib/api'
 
 export function Dashboard() {
+  const [data, setData] = useState<any>(null)
+  const [campaigns, setCampaigns] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [stats, camps] = await Promise.all([
+          getDashboardStats(),
+          listCampaigns({ page_size: 5 }),
+        ])
+        setData(stats)
+        setCampaigns(stats.recent_campaigns?.length ? stats.recent_campaigns : camps.campaigns || [])
+      } catch (e: any) {
+        setError(e.message || 'Failed to load dashboard')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
+
+  const stats = [
+    { title: 'Total Customers', value: (data.total_customers ?? 0).toLocaleString(), change: '+12.5%', icon: Users, color: '#3b82f6', bg: '#eff6ff', positive: true },
+    { title: 'Active Campaigns', value: String(data.active_campaigns ?? 0), change: '+2 this week', icon: Megaphone, color: '#16a34a', bg: '#f0fdf4', positive: true },
+    { title: 'Messages Sent', value: (data.total_sent ?? 0).toLocaleString(), change: '+12.3%', icon: Send, color: '#7c3aed', bg: '#faf5ff', positive: true },
+    { title: 'Revenue Attributed', value: `$${(data.total_revenue ?? 0).toLocaleString()}`, change: '+5.4%', icon: DollarSign, color: '#f59e0b', bg: '#fffbeb', positive: true },
+  ]
+
+  const { avg_open_rate, avg_ctr, avg_conversion_rate } = data
+
+  const insights = [
+    {
+      type: 'opportunity', icon: Lightbulb, color: '#14b8a6', title: 'Engagement',
+      text: avg_open_rate > 25
+        ? `Open rate of ${avg_open_rate}% is strong. Segment engaged users for premium campaigns to maximize ROI.`
+        : `Open rate is ${avg_open_rate}%. A/B test subject lines and send times to improve engagement.`,
+    },
+    {
+      type: 'timing', icon: Clock, color: '#f59e0b', title: 'Click Performance',
+      text: avg_ctr > 10
+        ? `CTR of ${avg_ctr}% shows content resonates well. Expand successful creatives to broader audiences.`
+        : `CTR is ${avg_ctr}%. Personalize CTAs and offers to boost click-through rates.`,
+    },
+    {
+      type: 'suggestion', icon: Sparkles, color: '#7c3aed', title: 'Conversion',
+      text: avg_conversion_rate > 5
+        ? `Conversion rate of ${avg_conversion_rate}% is above average. Double down on your top-performing channels.`
+        : `Conversion rate at ${avg_conversion_rate}%. Refine targeting and landing pages for better results.`,
+    },
+  ]
+
+  const channelLabel: Record<string, string> = { whatsapp: 'WhatsApp', sms: 'SMS', email: 'Email', rcs: 'RCS' }
+
   return (
     <div>
       <div className="xeno-header">
@@ -89,22 +129,24 @@ export function Dashboard() {
             </tr>
           </thead>
           <tbody>
-            {campaigns.map((c, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid #f1f5f9' }}>
+            {campaigns.map((c: any, i: number) => (
+              <tr key={c.id || i} style={{ borderBottom: '1px solid #f1f5f9' }}>
                 <td style={{ padding: '12px 16px', fontWeight: 500 }}>{c.name}</td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span className={`xeno-channel-tag xeno-channel-${c.channel}`}>
-                    {c.channel === 'whatsapp' ? 'WhatsApp' : c.channel === 'sms' ? 'SMS' : c.channel === 'email' ? 'Email' : 'RCS'}
+                  <span className={`xeno-channel-tag xeno-channel-${c.channel || 'email'}`}>
+                    {channelLabel[c.channel] || c.channel || 'Email'}
                   </span>
                 </td>
-                <td style={{ padding: '12px 16px', color: '#475569' }}>{c.segment}</td>
+                <td style={{ padding: '12px 16px', color: '#475569' }}>{c.approval_status || '—'}</td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span className={`xeno-badge xeno-badge-${c.status}`}>{c.statusLabel}</span>
+                  <span className={`xeno-badge xeno-badge-${c.status === 'sent' || c.status === 'completed' ? 'success' : c.status === 'sending' ? 'info' : c.status === 'draft' ? 'warning' : 'purple'}`}>
+                    {c.status ? c.status.charAt(0).toUpperCase() + c.status.slice(1) : '—'}
+                  </span>
                 </td>
-                <td style={{ padding: '12px 16px' }}>{c.sent}</td>
-                <td style={{ padding: '12px 16px' }}>{c.openRate}</td>
-                <td style={{ padding: '12px 16px' }}>{c.clickRate}</td>
-                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{c.revenue}</td>
+                <td style={{ padding: '12px 16px' }}>{c.created_at ? new Date(c.created_at).toLocaleDateString() : '—'}</td>
+                <td style={{ padding: '12px 16px' }}>{c.open_rate != null ? `${c.open_rate}%` : '—'}</td>
+                <td style={{ padding: '12px 16px' }}>{c.click_rate != null ? `${c.click_rate}%` : '—'}</td>
+                <td style={{ padding: '12px 16px', fontWeight: 600 }}>{c.revenue != null ? `$${c.revenue}` : '—'}</td>
               </tr>
             ))}
           </tbody>
