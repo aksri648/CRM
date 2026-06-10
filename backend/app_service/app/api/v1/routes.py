@@ -467,6 +467,25 @@ async def command_centre(data: dict, current_user: dict = Depends(get_current_us
         raise HTTPException(status_code=500, detail=f"Command centre query failed: {str(e)}")
 
 
+@router.post("/command-centre/chat")
+async def command_centre_chat(data: dict, current_user: dict = Depends(get_current_user)):
+    try:
+        result = await call_agent_command_centre(data.get("query", ""))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Command centre chat failed: {str(e)}")
+
+
+@router.get("/command-centre/history")
+async def get_command_centre_history():
+    return {"history": []}
+
+
+@router.delete("/command-centre/history")
+async def clear_command_centre_history():
+    return {"status": "ok"}
+
+
 @router.get("/approvals")
 async def list_approvals_endpoint(status: str | None = None, page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return await list_approvals(db, status, page, page_size)
