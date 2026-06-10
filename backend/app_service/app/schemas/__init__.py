@@ -38,22 +38,17 @@ class CustomerResponse(BaseModel):
     orders: int | None = None
     last_order_date: str | None = None
 
-    @model_validator(mode='before')
-    @classmethod
-    def alias_fields(cls, data):
-        if isinstance(data, dict):
-            first = data.get('first_name', '') or ''
-            last = data.get('last_name', '') or ''
-            if not data.get('name'):
-                data['name'] = f'{first} {last}'.strip() or None
-            if data.get('ltv') is None:
-                data['ltv'] = data.get('total_spent')
-            if data.get('orders') is None:
-                data['orders'] = data.get('total_orders')
-            days = data.get('days_since_last_order')
-            if days is not None and data.get('last_order_date') is None:
-                data['last_order_date'] = f'{days}d ago'
-        return data
+    @model_validator(mode='after')
+    def alias_fields(self):
+        if not self.name:
+            self.name = f'{self.first_name or ""} {self.last_name or ""}'.strip() or None
+        if self.ltv is None:
+            self.ltv = float(self.total_spent) if self.total_spent is not None else None
+        if self.orders is None:
+            self.orders = self.total_orders
+        if self.days_since_last_order is not None and self.last_order_date is None:
+            self.last_order_date = f'{self.days_since_last_order}d ago'
+        return self
 
     class Config:
         from_attributes = True
