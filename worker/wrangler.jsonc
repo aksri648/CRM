@@ -8,13 +8,7 @@
       "id": "fc3027c460a94e29934e72f3df7aa68a"
     }
   ],
-  "secrets_store_secrets": [
-    {
-      "binding": "APP_SERVICE_URL",
-      "store_id": "a71fd3acae8f4e34a5b45dd93826f35d",
-      "secret_name": "APP_SERVICE_URL"
-    }
-  ],
+
   "durable_objects": {
     "bindings": [
       { "name": "COMMAND_CENTRE", "class_name": "CommandCentreDO" }
@@ -31,6 +25,7 @@
     }
   ],
   "vars": {
+    "APP_SERVICE_URL": "https://xeno-crm-app-service.onrender.com",
     "DEFAULT_TTL": "300",
     "CLERK_ISSUER": "https://capable-airedale-73.clerk.accounts.dev",
     "CLERK_PUBLISHABLE_KEY": "pk_test_Y2FwYWJsZS1haXJlZGFsZS03My5jbGVyay5hY2NvdW50cy5kZXYk",

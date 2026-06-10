@@ -3,10 +3,6 @@ import { CampaignPipeline, CampaignPipelineParams } from "./campaign_pipeline";
 
 export { CommandCentreDO, CampaignPipeline };
 
-interface SecretsBinding {
-  get(): Promise<string>;
-}
-
 interface WorkflowBinding<P = unknown> {
   create(options: { id?: string; params?: P }): Promise<{ id: string }>;
   get(id: string): Promise<{ id: string; status(): Promise<unknown> }>;
@@ -14,7 +10,7 @@ interface WorkflowBinding<P = unknown> {
 
 interface Env {
   API_CACHE: KVNamespace;
-  APP_SERVICE_URL: SecretsBinding;
+  APP_SERVICE_URL: string;
   COMMAND_CENTRE: DurableObjectNamespace<CommandCentreDO>;
   CAMPAIGN_PIPELINE: WorkflowBinding<CampaignPipelineParams>;
   CLERK_PUBLISHABLE_KEY?: string;
@@ -58,12 +54,8 @@ function corsHeaders(origin: string): HeadersInit {
   };
 }
 
-async function getApiUrl(env: Env): Promise<string> {
-  try {
-    return await env.APP_SERVICE_URL.get();
-  } catch {
-    return "https://xeno-crm-app-service.onrender.com";
-  }
+function getApiUrl(env: Env): string {
+  return env.APP_SERVICE_URL;
 }
 
 async function getCommandCentreStub(
@@ -213,7 +205,7 @@ export default {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin") || "*";
     const cors = corsHeaders(origin);
-    const appServiceUrl = await getApiUrl(env);
+    const appServiceUrl = getApiUrl(env);
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
