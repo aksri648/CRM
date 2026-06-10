@@ -1,9 +1,10 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useUser, useClerk } from '@clerk/clerk-react'
 import { useAppStore } from '@/store'
 import {
   LayoutDashboard, Wand2, Lightbulb, Users, Layers, Megaphone,
-  FlaskConical, BarChart3, GitCompare, Bot, Settings, LogOut,
+  FlaskConical, BarChart3, GitCompare, Bot, Settings, LogOut, Brain,
 } from 'lucide-react'
 
 const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''
@@ -28,6 +29,7 @@ const navItems = [
   { label: 'Pipeline Monitor', icon: GitCompare, path: '/pipeline', badge: null },
 
   { section: 'System' },
+  { label: 'AI Command Centre', icon: Brain, path: '#ai-cc', badge: 'Live' },
   { label: 'Settings', icon: Settings, path: '/settings', badge: null },
 ]
 
@@ -83,7 +85,11 @@ function ClerkFooter() {
   )
 }
 
+import { AICommandCentre } from '@/components/AICommandCentre'
+
 export function Sidebar() {
+  const [showCC, setShowCC] = useState(false)
+
   return (
     <div className="xeno-sidebar">
       <div className="xeno-logo">
@@ -94,6 +100,18 @@ export function Sidebar() {
         {navItems.map((item, i) =>
           'section' in item ? (
             <div key={i} className="xeno-nav-section">{item.section}</div>
+          ) : item.path === '#ai-cc' ? (
+            <button
+              key={item.path}
+              className="xeno-nav-item"
+              onClick={() => setShowCC(true)}
+            >
+              <item.icon size={18} />
+              <span>{item.label}</span>
+              {item.badge && (
+                <span className="xeno-nav-badge">{item.badge}</span>
+              )}
+            </button>
           ) : (
             <NavLink
               key={item.path}
@@ -112,6 +130,7 @@ export function Sidebar() {
         )}
       </nav>
       {CLERK_KEY ? <ClerkFooter /> : <FallbackFooter />}
+      {showCC && <AICommandCentre onClose={() => setShowCC(false)} />}
     </div>
   )
 }
