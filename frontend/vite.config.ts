@@ -10,7 +10,7 @@ export default defineConfig({
     },
   },
   define: {
-    __API_URL__: JSON.stringify(process.env.VITE_API_URL || "https://xeno-api-worker.akshrivastav648.workers.dev"),
+    __API_URL__: JSON.stringify(process.env.VITE_API_URL || "https://xeno-crm-app-service.onrender.com"),
   },
   server: {
     proxy: {
