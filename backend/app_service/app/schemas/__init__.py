@@ -136,7 +136,7 @@ class CampaignResponse(BaseModel):
     channel: str
     status: str
     ai_generated: bool = False
-    reasoning: dict | None = None
+    reasoning: dict | str | None = None
     expected_reach: int | None = None
     expected_ctr: float | None = None
     expected_revenue: float | None = None
