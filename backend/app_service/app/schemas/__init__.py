@@ -35,7 +35,7 @@ class CustomerResponse(BaseModel):
     created_at: datetime | None = None
     name: str | None = None
     ltv: float | None = None
-    orders: int | None = None
+    order_count: int | None = None
 
     @model_validator(mode='after')
     def alias_fields(self):
@@ -43,8 +43,8 @@ class CustomerResponse(BaseModel):
             self.name = f'{self.first_name or ""} {self.last_name or ""}'.strip() or None
         if self.ltv is None:
             self.ltv = float(self.total_spent) if self.total_spent is not None else None
-        if self.orders is None:
-            self.orders = self.total_orders
+        if self.order_count is None:
+            self.order_count = self.total_orders
         return self
 
     class Config:

@@ -146,7 +146,7 @@ export function Customers() {
           {customers.map((c) => {
             const customerName = c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown'
             const ltv = c.ltv ?? c.total_spent ?? 0
-            const orders = c.orders ?? c.total_orders ?? 0
+            const orders = c.order_count ?? c.orders ?? c.total_orders ?? 0
             const lastOrder = c.last_order_date ? relativeDate(c.last_order_date) : (c.days_since_last_order != null ? displayDays(c.days_since_last_order) : '—')
             return (
             <div key={c.id} className="xeno-customer-card">
