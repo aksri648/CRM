@@ -19,6 +19,7 @@
     --backend: #34d399;
     --storage: #a78bfa;
     --external: #f472b6;
+    --ai: #c084fc;
     --packet: #fde047;
   }
   * { box-sizing: border-box; }
@@ -97,7 +98,7 @@
     position: relative;
     background:
       radial-gradient(circle at 20% 30%, rgba(20, 184, 166, 0.06) 0, transparent 50%),
-      radial-gradient(circle at 80% 70%, rgba(167, 139, 250, 0.05) 0, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(192, 132, 252, 0.05) 0, transparent 50%),
       var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -163,11 +164,13 @@
   .node.cat-backend { border-color: rgba(52, 211, 153, 0.4); }
   .node.cat-storage { border-color: rgba(167, 139, 250, 0.4); }
   .node.cat-external { border-color: rgba(244, 114, 182, 0.4); }
+  .node.cat-ai { border-color: rgba(192, 132, 252, 0.45); }
   .node.cat-user .tag { background: rgba(56, 189, 248, 0.15); color: var(--user); }
   .node.cat-cloudflare .tag { background: rgba(245, 158, 11, 0.15); color: var(--cloudflare); }
   .node.cat-backend .tag { background: rgba(52, 211, 153, 0.15); color: var(--backend); }
   .node.cat-storage .tag { background: rgba(167, 139, 250, 0.15); color: var(--storage); }
   .node.cat-external .tag { background: rgba(244, 114, 182, 0.15); color: var(--external); }
+  .node.cat-ai .tag { background: rgba(192, 132, 252, 0.15); color: var(--ai); }
   .node.active {
     border-color: var(--accent);
     box-shadow: 0 0 0 2px var(--accent-dim), 0 0 30px rgba(20, 184, 166, 0.25);
@@ -312,6 +315,7 @@
   .legend-dot.backend { background: var(--backend); }
   .legend-dot.storage { background: var(--storage); }
   .legend-dot.external { background: var(--external); }
+  .legend-dot.ai { background: var(--ai); }
 
 </style>
 </head>
@@ -322,14 +326,14 @@
   <div class="controls">
     <select id="flowSelect" aria-label="Select flow">
       <option value="login">1. Authentication (Clerk)</option>
-      <option value="campaign">2. AI Campaign Generation (RQ + LangGraph)</option>
+      <option value="campaign">2. AI Campaign Gen (LangGraph + NLP + Groq)</option>
       <option value="email">3. Campaign Send (Workflows + Resend)</option>
       <option value="webhook">4. Resend Webhook → Analytics</option>
-      <option value="chat">5. AI Command Centre (Durable Object)</option>
+      <option value="chat">5. AI Command Centre (DO + LangGraph + Groq)</option>
     </select>
-    <button id="playBtn" class="primary">▶ Play</button>
-    <button id="pauseBtn" disabled>⏸ Pause</button>
-    <button id="resetBtn">⟲ Reset</button>
+    <button id="playBtn" class="primary">&#9654; Play</button>
+    <button id="pauseBtn" disabled>&#9208; Pause</button>
+    <button id="resetBtn">&#10226; Reset</button>
     <label>Speed
       <input type="range" id="speedSlider" min="0.5" max="3" step="0.5" value="1" />
       <span id="speedLabel" style="min-width:24px;display:inline-block">1x</span>
@@ -339,14 +343,22 @@
 
 <main>
   <div id="diagram">
-    <svg id="connections" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 760" preserveAspectRatio="xMidYMid meet"></svg>
-    <!-- Nodes injected by JS -->
+    <svg id="connections" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 760" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 8 3, 0 6" fill="#303644" />
+        </marker>
+        <marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+          <polygon points="0 0, 8 3, 0 6" fill="#14b8a6" />
+        </marker>
+      </defs>
+    </svg>
   </div>
 
   <aside id="info-panel">
     <span class="info-tag" id="info-tag">SELECT</span>
     <h3 id="info-title">Click a node to learn more</h3>
-    <p id="info-desc">Each box is a real component from the Xeno CRM codebase. Click any to see what it does, the files it lives in, and how it talks to the rest of the system. Or press <strong>▶ Play</strong> to animate a request flow.</p>
+    <p id="info-desc">Each box is a real component from the Xeno CRM codebase. Click any to see what it does, the files it lives in, and how it talks to the rest of the system. Or press <strong>&#9654; Play</strong> to animate a request flow.</p>
     <ul id="info-list"></ul>
     <div class="free-tier" id="info-tier"></div>
   </aside>
@@ -355,13 +367,14 @@
 <footer id="narration">
   <div class="narration-row">
     <span class="step-counter" id="stepCounter">0 / 0</span>
-    <div class="step-desc" id="stepDesc">Pick a flow above and press <strong>▶ Play</strong> to watch the request travel through the system.</div>
+    <div class="step-desc" id="stepDesc">Pick a flow above and press <strong>&#9654; Play</strong> to watch the request travel through the system.</div>
   </div>
   <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
   <div class="legend">
     <span class="legend-item"><span class="legend-dot user"></span> User / Browser</span>
     <span class="legend-item"><span class="legend-dot cloudflare"></span> Cloudflare edge (free)</span>
     <span class="legend-item"><span class="legend-dot backend"></span> FastAPI services (Render free)</span>
+    <span class="legend-item"><span class="legend-dot ai"></span> AI / ML</span>
     <span class="legend-item"><span class="legend-dot storage"></span> Datastores</span>
     <span class="legend-item"><span class="legend-dot external"></span> External SaaS (free tier)</span>
   </div>
@@ -375,25 +388,31 @@
  * Each node: { x, y, w, h, label, sub, tag, cat, info: { ... } }
  * ------------------------------------------------------------------ */
 const NODES = {
-  user:        { x:  60, y:  30, w: 150, h: 64, label: 'User',           sub: 'Browser',                 tag: 'CLIENT',      cat: 'user',       info: { role: 'The end user. Opens the React app in a browser.', files: ['(end user device)'], tier: '' } },
-  clerk:       { x: 1070, y: 30, w: 150, h: 64, label: 'Clerk',          sub: 'SignIn + JWT',            tag: 'AUTH',        cat: 'external',   info: { role: 'Hosted authentication. Issues a JWT after the user signs in. Verified by App Service via JWKS.', files: ['frontend/src/main.tsx', 'frontend/src/auth/AuthSync.tsx', 'backend/app_service/app/core/clerk_auth.py'], tier: 'Free up to 10,000 MAU' } },
-  frontend:    { x: 530, y:  30, w: 230, h: 64, label: 'Frontend',       sub: 'React 19 + Vite + TS',    tag: 'STATIC',      cat: 'user',       info: { role: 'Single-page app. 11 pages, Zustand store, TanStack Query, shadcn/ui. Custom CSS.', files: ['frontend/src/main.tsx', 'frontend/src/App.tsx', 'frontend/src/pages/*', 'frontend/src/lib/api.ts'], tier: 'Render static site (free)' } },
-  worker:      { x: 380, y: 165, w: 520, h: 80, label: 'Cloudflare Worker',     sub: 'Proxy · KV cache · CORS · /config',  tag: 'EDGE',        cat: 'cloudflare', info: { role: 'Sits between the browser and the App Service. Caches GETs in KV (per-user, SHA-256 of Authorization header). Adds CORS. Hosts Durable Object + Workflow bindings.', files: ['worker/src/index.ts', 'worker/wrangler.jsonc'], tier: 'Workers Free: 100k req/day' } },
-  do_chat:     { x:  80, y: 305, w: 200, h: 80, label: 'Durable Object', sub: 'CommandCentreDO',         tag: 'SQLITE',      cat: 'cloudflare', info: { role: 'Per-user SQLite-backed Durable Object. Stores AI Command Centre chat history so it survives reloads. Keyed by hash of Authorization.', files: ['worker/src/command_centre_do.ts'], tier: 'SQLite-backed DO — free on Workers Free' } },
-  workflow:    { x: 380, y: 305, w: 230, h: 80, label: 'CF Workflows',   sub: 'CampaignPipeline',        tag: 'ORCHESTRATE', cat: 'cloudflare', info: { role: 'Durable multi-step orchestration. Batches communications (default 25), sleeps 30s between batches for rate limiting, calls Comm Service to actually send.', files: ['worker/src/campaign_pipeline.ts'], tier: 'Workflows Free: 100k invocations/day' } },
-  app:         { x: 810, y: 305, w: 220, h: 80, label: 'App Service',    sub: 'FastAPI · port 8001',     tag: 'CORE',        cat: 'backend',    info: { role: 'Orchestration hub. Owns crm/analytics/system schemas. ~30 routes: auth, dashboard, customers, segments, campaigns, A/B tests, agents, approvals, callbacks. Calls Agent + Comm services.', files: ['backend/app_service/app/main.py', 'backend/app_service/app/api/v1/routes.py'], tier: 'Render Web Service (free, sleeps after 15min)' } },
-  agent:       { x: 460, y: 445, w: 220, h: 80, label: 'Agent Service',  sub: 'FastAPI · port 8002',     tag: 'LANGGRAPH',   cat: 'backend',    info: { role: 'Stateless LangGraph executor. 3 graphs: campaign (Athena→Atlas→Sophia→Mercury→Nova→Darwin→Apollo→Sentinel), opportunity (Orion-led), command_centre. Enqueues to RQ when RQ_ENABLED.', files: ['backend/agent_service/app/agents/graph.py', 'backend/agent_service/app/api/v1/routes.py', 'backend/agent_service/app/jobs/runners.py'], tier: 'Render Web Service' } },
-  comm:        { x: 810, y: 445, w: 220, h: 80, label: 'Communication Service', sub: 'FastAPI · port 8003', tag: 'CHANNEL',     cat: 'backend',    info: { role: 'No AI, no LangGraph. Append-only event sourcing. Sends real emails via Resend when EMAIL_SEND_ENABLED, otherwise simulates lifecycle. Receives provider webhooks.', files: ['backend/communication_service/app/services/lifecycle_service.py', 'backend/communication_service/app/services/email_service.py', 'backend/communication_service/app/api/v1/routes.py'], tier: 'Render Web Service' } },
-  rq_worker:   { x: 230, y: 445, w: 200, h: 80, label: 'RQ Worker',      sub: 'Background process',      tag: 'WORKER',      cat: 'backend',    info: { role: 'Drains the Redis queue. Runs the LangGraph asynchronously by calling asyncio.run() on each job. Started via "python -m app.worker".', files: ['backend/agent_service/app/worker.py', 'backend/agent_service/app/jobs/queue.py'], tier: 'Render Background Worker' } },
-  postgres:    { x: 810, y: 600, w: 220, h: 80, label: 'PostgreSQL',     sub: '4 schemas',               tag: 'DB',          cat: 'storage',    info: { role: 'Single shared database. Schemas: crm, analytics, system (owned by App Service), communications (owned by Comm Service). Schemas auto-create on startup.', files: ['backend/app_service/app/database.py', 'backend/communication_service/app/database.py'], tier: 'Render Postgres (free)' } },
-  redis:       { x: 230, y: 600, w: 200, h: 80, label: 'Upstash Redis',  sub: 'RQ job queue',            tag: 'QUEUE',       cat: 'storage',    info: { role: 'Holds the RQ job queue for the Agent Service. Free tier: 10,000 commands/day, 256MB.', files: ['backend/agent_service/app/jobs/queue.py'], tier: 'Upstash Free' } },
-  resend:      { x: 1070, y: 445, w: 150, h: 80, label: 'Resend',         sub: 'Email API',               tag: 'EMAIL',       cat: 'external',   info: { role: 'Sends real emails for email-channel campaigns. Each send tagged with communication_id so webhooks resolve back. Free tier: 100/day, 3,000/month.', files: ['backend/communication_service/app/services/email_service.py'], tier: 'Resend Free: 100/day' } },
-  customer:    { x: 1070, y: 600, w: 150, h: 80, label: 'Recipient',      sub: 'Customer inbox',          tag: 'INBOX',       cat: 'external',   info: { role: 'The end customer who receives the campaign email. Opens, clicks, and converts events flow back via Resend webhooks.', files: ['(external email inbox)'], tier: '' } }
+  user:     { x:  40, y: 25, w: 150, h: 64, label: 'User',              sub: 'Browser',                     tag: 'CLIENT',    cat: 'user',       info: { role: 'The end user. Opens the React app in a browser to manage campaigns, view analytics, and interact with the AI Command Centre.', files: ['(end user device)'], tier: '' } },
+  frontend: { x: 440, y: 25, w: 240, h: 64, label: 'Frontend',          sub: 'React 19 + Vite + TS',        tag: 'STATIC',    cat: 'user',       info: { role: 'Single-page app. 11 pages, Zustand store for auth tokens, TanStack Query for server state, shadcn/ui + 1300+ lines custom CSS. Build-time constant __API_URL__ points to Cloudflare Worker.', files: ['frontend/src/main.tsx', 'frontend/src/App.tsx', 'frontend/src/pages/*', 'frontend/src/lib/api.ts'], tier: 'Render static site (free)' } },
+  clerk:    { x: 1020, y: 25, w: 150, h: 64, label: 'Clerk',            sub: 'SignIn + JWT',               tag: 'AUTH',      cat: 'external',   info: { role: 'Hosted authentication (conditionally enabled). Issues a signed JWT after the user signs in. Verified by App Service via JWKS endpoint, cached per pod.', files: ['frontend/src/main.tsx', 'frontend/src/auth/AuthSync.tsx', 'backend/app_service/app/core/clerk_auth.py'], tier: 'Free up to 10,000 MAU' } },
+
+  worker:   { x: 280, y: 145, w: 720, h: 76, label: 'Cloudflare Worker', sub: 'Proxy &#xb7; KV cache &#xb7; CORS &#xb7; DO + Workflow bindings', tag: 'EDGE', cat: 'cloudflare', info: { role: 'Sole API gateway. Frontend talks ONLY to the Worker. Proxies /api/v1/* to App Service. Caches GETs in KV (300s TTL, per-user by SHA-256 auth header). Routes /command-centre/* to Durable Object, /workflow/* to Workflow. Reads secrets from Cloudflare Secrets Store.', files: ['worker/src/index.ts', 'worker/wrangler.jsonc'], tier: 'Workers Free: 100k req/day' } },
+
+  do_chat:  { x:  60, y: 270, w: 200, h: 80, label: 'Durable Object',   sub: 'CommandCentreDO',            tag: 'SQLITE',    cat: 'cloudflare', info: { role: 'Per-user SQLite-backed Durable Object. Stores AI Command Centre chat history so it survives page reloads. Keyed by SHA-256 hash of Authorization header. Messages appended before proxying upstream.', files: ['worker/src/command_centre_do.ts'], tier: 'SQLite-backed DO — free on Workers Free' } },
+  workflow: { x: 330, y: 270, w: 230, h: 80, label: 'CF Workflows',     sub: 'CampaignPipeline',           tag: 'BATCH',     cat: 'cloudflare', info: { role: 'Durable multi-step orchestration for batch email dispatch. Processes communications in batches of 25, sleeps 30s between batches for rate limiting, calls Comm Service for each batch. State survives Cloudflare restarts.', files: ['worker/src/campaign_pipeline.ts'], tier: 'Workflows Free: 100k invocations/day' } },
+  app:      { x: 670, y: 270, w: 230, h: 80, label: 'App Service',      sub: 'FastAPI &#xb7; port 8001',   tag: 'CORE',      cat: 'backend',    info: { role: 'Central orchestration hub. Owns crm/analytics/system DB schemas. ~30 routes: auth, dashboard, customers, segments, campaigns, A/B tests, agents, approvals, callbacks/seed. Calls Agent Service for AI and Comm Service for email dispatch.', files: ['backend/app_service/app/main.py', 'backend/app_service/app/api/v1/routes.py'], tier: 'Render Web Service (free, sleeps after 15min)' } },
+
+  rq_worker:{ x:  40, y: 430, w: 185, h: 80, label: 'RQ Worker',        sub: 'Background process',         tag: 'WORKER',    cat: 'backend',    info: { role: 'Drains the Redis queue. Runs LangGraph graphs asynchronously via asyncio.run() on each job. Started with "python -m app.worker". Optional — disabled when RQ_ENABLED=false.', files: ['backend/agent_service/app/worker.py', 'backend/agent_service/app/jobs/queue.py'], tier: 'Render Background Worker' } },
+  agent:    { x: 265, y: 430, w: 215, h: 80, label: 'Agent Service',    sub: 'FastAPI &#xb7; port 8002',   tag: 'LANGGRAPH', cat: 'backend',    info: { role: 'Stateless LangGraph executor. 3 graphs: campaign (8 agents: Athena&#8594;Atlas&#8594;Sophia&#8594;Mercury&#8594;Nova&#8594;Darwin&#8594;Apollo&#8594;Sentinel), opportunity (Orion-led), command_centre. Atlas agent runs NLP + Groq in parallel and resolves disagreements.', files: ['backend/agent_service/app/agents/graph.py', 'backend/agent_service/app/api/v1/routes.py'], tier: 'Render Web Service' } },
+  nlp:      { x: 520, y: 430, w: 185, h: 80, label: 'NLP Classifier',  sub: 'Deterministic &#xb7; &lt;1ms', tag: 'AI',        cat: 'ai',         info: { role: 'Pure-Python deterministic segment classifier. 100+ lexicon patterns across 6 segments. Runs inside the Atlas LangGraph agent. If confidence &#x2265; 0.75, overrides LLM. No external dependencies — pure stdlib &#x2264; 1ms per call.', files: ['backend/agent_service/app/nlp/classifier.py', 'backend/agent_service/app/nlp/features.py', 'backend/agent_service/app/nlp/lexicons.py'], tier: 'Built-in — no external cost' } },
+  comm:     { x: 745, y: 430, w: 215, h: 80, label: 'Communication Svc', sub: 'FastAPI &#xb7; port 8003',  tag: 'EVENT SRC', cat: 'backend',    info: { role: 'No AI, no LangGraph. Append-only event sourcing — never updates rows. Sends real emails via Resend when EMAIL_SEND_ENABLED, otherwise simulates lifecycle. Receives Resend webhooks and forwards callbacks to App Service.', files: ['backend/communication_service/app/services/lifecycle_service.py', 'backend/communication_service/app/services/email_service.py', 'backend/communication_service/app/api/v1/routes.py'], tier: 'Render Web Service' } },
+  resend:   { x: 1000, y: 430, w: 170, h: 80, label: 'Resend',          sub: 'Email API',                   tag: 'EMAIL',     cat: 'external',   info: { role: 'Transactional email provider. Sends real campaign emails. Each email tagged with communication_id so webhooks resolve back. Sends webhook events (delivered, opened, clicked, bounced, complained) to Comm Service.', files: ['backend/communication_service/app/services/email_service.py'], tier: 'Resend Free: 100/day, 3,000/month' } },
+
+  redis:    { x:  60, y: 590, w: 185, h: 80, label: 'Upstash Redis',    sub: 'RQ job queue',               tag: 'QUEUE',     cat: 'storage',    info: { role: 'Holds the RQ job queue for the Agent Service. When RQ_ENABLED, campaign and opportunity jobs are enqueued here. Agent Service polls for job completion. Free tier: 10k commands/day, 256MB.', files: ['backend/agent_service/app/jobs/queue.py'], tier: 'Upstash Free' } },
+  groq:     { x: 290, y: 590, w: 185, h: 80, label: 'Groq LLM',         sub: 'llama-3.3-70b-versatile',    tag: 'INFERENCE', cat: 'ai',         info: { role: 'Cloud LLM inference provider. Agent Service calls ChatGroq with structured output for all LangGraph agents. Atlas agent runs LLM in parallel with NLP classifier; Sophia, Mercury, Nova, Orion, CommandCentre all use Groq for generation. Lazy-cached per (temperature, model).', files: ['backend/agent_service/app/agents/llm.py', 'backend/agent_service/app/agents/agents.py'], tier: 'Groq Free tier available' } },
+  postgres: { x: 530, y: 590, w: 230, h: 80, label: 'PostgreSQL',       sub: '4 schemas',                  tag: 'DB',        cat: 'storage',    info: { role: 'Single shared database with 4 schemas: crm, analytics, system (owned by App Service), communications (owned by Comm Service). Agent Service has zero DB access. Schemas auto-create on startup.', files: ['backend/app_service/app/database.py', 'backend/communication_service/app/database.py'], tier: 'Render Postgres (free)' } },
+  customer: { x: 830, y: 590, w: 200, h: 80, label: 'Recipient',        sub: 'Customer inbox',             tag: 'INBOX',     cat: 'external',   info: { role: 'The end customer who receives campaign emails. Opens, clicks, and converts — events flow back via Resend webhooks through Comm Service to App Service analytics.', files: ['(external email inbox)'], tier: '' } }
 };
 
 /* ------------------------------------------------------------------
  * Connections — drawn as background lines in SVG (muted by default)
- * Format: [fromKey, toKey, optional bend offset]
+ * Format: [fromKey, toKey]
  * ------------------------------------------------------------------ */
 const CONNECTIONS = [
   ['user',      'frontend'],
@@ -405,6 +424,8 @@ const CONNECTIONS = [
   ['app',       'agent'],
   ['app',       'comm'],
   ['app',       'postgres'],
+  ['agent',     'nlp'],
+  ['agent',     'groq'],
   ['agent',     'rq_worker'],
   ['agent',     'redis'],
   ['rq_worker', 'redis'],
@@ -432,85 +453,88 @@ const FLOWS = {
       { from: 'frontend', to: 'worker',    label: 'GET /dashboard/stats + Bearer', desc: '<span class="who">Frontend</span> makes its first authenticated API call.' },
       { from: 'worker',   to: 'app',       label: 'proxy + auth header', desc: '<span class="who">Worker</span> forwards the request to the App Service (KV cache miss on first call).' },
       { from: 'app',      to: 'clerk',     label: 'JWKS fetch',         desc: '<span class="who">App Service</span> verifies the JWT signature using Clerk\'s JWKS endpoint (cached per pod).' },
-      { from: 'app',      to: 'frontend',  label: '200 OK',             desc: 'Authenticated. The dashboard renders. ✓' }
+      { from: 'app',      to: 'frontend',  label: '200 OK',             desc: 'Authenticated. The dashboard renders. &#10003;' }
     ]
   },
 
   campaign: {
-    title: 'AI Campaign Generation (RQ + LangGraph)',
+    title: 'AI Campaign Generation (LangGraph + NLP + Groq)',
     steps: [
-      { from: 'frontend', to: 'worker',    label: 'POST /agents/generate-campaign', desc: 'User clicks <strong>Generate</strong> in the AI Studio. <span class="who">Frontend</span> POSTs the goal.' },
-      { from: 'worker',   to: 'app',       label: 'proxy (POST bypasses cache)', desc: '<span class="who">Worker</span> proxies. POST methods invalidate any GET cache for this path.' },
+      { from: 'frontend', to: 'worker',    label: 'POST /agents/generate-campaign', desc: 'User clicks <strong>Generate</strong> in the AI Studio. <span class="who">Frontend</span> POSTs the marketing goal.' },
+      { from: 'worker',   to: 'app',       label: 'proxy (POST)',       desc: '<span class="who">Worker</span> proxies to App Service. POST methods bypass KV cache and invalidate any GET cache for this path.' },
       { from: 'app',      to: 'postgres',  label: 'INSERT AgentRun',    desc: '<span class="who">App Service</span> records an <code>AgentRun</code> row with status=running.' },
       { from: 'app',      to: 'agent',     label: 'POST {goal, run_id}', desc: '<span class="who">App Service</span> calls the Agent Service over HTTP.' },
-      { from: 'agent',    to: 'redis',     label: 'rq.enqueue(run_campaign_job)', desc: '<span class="who">Agent Service</span> enqueues the job in Upstash Redis (when RQ_ENABLED).' },
-      { from: 'agent',    to: 'app',       label: '{job_id, queued}',   desc: '<span class="who">Agent Service</span> returns immediately with the job id.' },
-      { from: 'redis',    to: 'rq_worker', label: 'dequeue',            desc: 'The <span class="who">RQ Worker</span> (background process) picks up the job.' },
-      { from: 'rq_worker',to: 'rq_worker', label: 'LangGraph: 8 agents', desc: 'Runs <code>asyncio.run(campaign_graph.ainvoke(...))</code>: Athena → Atlas → Sophia → Mercury → Nova → Darwin → Apollo → Sentinel.' },
-      { from: 'rq_worker',to: 'redis',     label: 'store result',       desc: 'On finish, RQ stores the result back in Redis.' },
-      { from: 'app',      to: 'agent',     label: 'GET /agents/jobs/{id}', desc: '<span class="who">App Service</span> polls every 1.5s for completion.' },
-      { from: 'agent',    to: 'redis',     label: 'Job.fetch',          desc: '<span class="who">Agent Service</span> reads job state from Redis.' },
-      { from: 'agent',    to: 'app',       label: '{status: finished, result}', desc: 'Result is back. Polling stops.' },
-      { from: 'app',      to: 'postgres',  label: 'INSERT Campaign, Variants, AgentDecisions', desc: '<span class="who">App Service</span> writes the campaign draft, 3 variants, and per-agent decisions with reasoning + confidence.' },
-      { from: 'app',      to: 'worker',    label: '200 OK + proposal',  desc: 'Returns the full proposal to the Frontend.' },
-      { from: 'worker',   to: 'frontend',  label: 'proposal',           desc: 'AI Studio shows the proposal awaiting human approval. ✓' }
+      { from: 'agent',    to: 'agent',     label: 'LangGraph starts: Athena', desc: '<span class="who">Agent Service</span> kicks off the campaign LangGraph. <strong>Athena</strong> (Marketing Director) analyses the goal and sets high-level strategy.' },
+      { from: 'agent',    to: 'nlp',       label: 'Atlas: classify(goal)', desc: '<strong>Atlas</strong> (Segment Analyst) runs the <span class="who">NLP Classifier</span> — deterministic, &lt;1ms, 100+ lexicon patterns across 6 segments.' },
+      { from: 'nlp',      to: 'agent',     label: '{segment, confidence}', desc: '<span class="who">NLP</span> returns a SegmentPrediction with confidence score. If &#x2265; 0.75 and it disagrees with LLM, NLP overrides.' },
+      { from: 'agent',    to: 'groq',      label: 'Atlas: LLM structured call', desc: '<strong>Atlas</strong> also calls <span class="who">Groq LLM</span> (llama-3.3-70b) in parallel for a second opinion on segment selection.' },
+      { from: 'groq',     to: 'agent',     label: '{segment, rationale}', desc: '<span class="who">Groq</span> returns the LLM-chosen segment with reasoning. Atlas resolves any NLP vs LLM disagreement.' },
+      { from: 'agent',    to: 'agent',     label: 'Sophia &#8594; Mercury &#8594; Nova', desc: '<strong>Sophia</strong> designs strategy + offer, <strong>Mercury</strong> picks channel, <strong>Nova</strong> writes 3 message variants (each calling Groq).' },
+      { from: 'agent',    to: 'groq',      label: 'Sophia/Mercury/Nova: LLM', desc: '<span class="who">Groq</span> is called again by Sophia (strategy), Mercury (channel), and Nova (message copy) — each with a unique system prompt and structured output schema.' },
+      { from: 'groq',     to: 'agent',     label: '{strategy, channel, variants}', desc: 'Each agent\'s Groq call returns structured Pydantic-validated output.' },
+      { from: 'agent',    to: 'agent',     label: 'Darwin &#8594; Apollo &#8594; Sentinel', desc: '<strong>Darwin</strong> generates KPIs, <strong>Apollo</strong> compiles final proposal. <strong>Sentinel</strong> (ethics guard) reviews and approves or rejects.' },
+      { from: 'agent',    to: 'app',       label: '{status: finished, proposal}', desc: 'Campaign graph completes. Full proposal with segment, strategy, channel, variants, reasoning, and agent trace returned.' },
+      { from: 'app',      to: 'postgres',  label: 'INSERT Campaign + Variants + Decisions', desc: '<span class="who">App Service</span> writes the campaign draft, 3 A/B variants, and per-agent decisions with reasoning + confidence + supporting_data.' },
+      { from: 'app',      to: 'worker',    label: '200 OK + proposal',  desc: 'Returns the full proposal to the Worker.' },
+      { from: 'worker',   to: 'frontend',  label: 'proposal',           desc: 'AI Studio shows the proposal awaiting human approval. &#10003;' }
     ]
   },
 
   email: {
     title: 'Campaign Send Pipeline (Cloudflare Workflows + Resend)',
     steps: [
-      { from: 'frontend', to: 'worker',    label: 'POST /campaigns/{id}/launch', desc: 'User approves the proposal then hits Launch. <span class="who">Frontend</span> calls the launch endpoint.' },
+      { from: 'frontend', to: 'worker',    label: 'POST /campaigns/{id}/launch', desc: 'User approves the proposal then hits <strong>Launch</strong>. <span class="who">Frontend</span> calls the launch endpoint.' },
       { from: 'worker',   to: 'app',       label: 'proxy',              desc: '<span class="who">Worker</span> proxies straight through.' },
-      { from: 'app',      to: 'postgres',  label: 'evaluate segment → customer_ids', desc: '<span class="who">App Service</span> reads the campaign\'s segment criteria and resolves matching customer IDs.' },
+      { from: 'app',      to: 'postgres',  label: 'evaluate segment &#8594; customer_ids', desc: '<span class="who">App Service</span> reads the campaign\'s segment criteria and resolves matching customer IDs.' },
       { from: 'app',      to: 'comm',      label: 'POST /campaigns/dispatch', desc: '<span class="who">App Service</span> hands the customer list to the Communication Service.' },
-      { from: 'comm',     to: 'postgres',  label: 'INSERT Communication rows', desc: '<span class="who">Comm Service</span> writes one Communication per customer (status=queued).' },
-      { from: 'comm',     to: 'worker',    label: 'POST /internal/workflows/dispatch + token', desc: 'When WORKFLOWS_ENABLED, <span class="who">Comm Service</span> asks the Worker to start a Cloudflare Workflow.' },
-      { from: 'worker',   to: 'workflow',  label: 'CAMPAIGN_PIPELINE.create({params})', desc: '<span class="who">Worker</span> spins up a CampaignPipeline workflow instance.' },
-      { from: 'workflow', to: 'comm',      label: 'step.do(send-batch-1)', desc: 'The Workflow processes communications in batches of 25. It calls back into Comm Service.' },
-      { from: 'comm',     to: 'app',       label: 'GET /internal/customers/{id}/email × 25', desc: 'For each communication, <span class="who">Comm Service</span> looks up the customer email (gated by X-Internal-Token).' },
-      { from: 'comm',     to: 'resend',    label: 'POST /emails × 25',  desc: 'One Resend API call per recipient. Each tagged with <code>communication_id</code> so webhooks can resolve back.' },
+      { from: 'comm',     to: 'postgres',  label: 'INSERT Communication rows', desc: '<span class="who">Comm Service</span> writes one Communication per customer (status=queued, append-only).' },
+      { from: 'comm',     to: 'worker',    label: 'POST /internal/workflows/dispatch', desc: 'When WORKFLOWS_ENABLED, <span class="who">Comm Service</span> asks the Worker to start a Cloudflare Workflow.' },
+      { from: 'worker',   to: 'workflow',  label: 'CAMPAIGN_PIPELINE.create()', desc: '<span class="who">Worker</span> spins up a CampaignPipeline workflow instance.' },
+      { from: 'workflow', to: 'comm',      label: 'step.do(batch-1/25)', desc: 'The Workflow processes communications in batches of 25. It calls back into Comm Service for each batch.' },
+      { from: 'comm',     to: 'app',       label: 'GET /internal/customers/{id}/email', desc: 'For each communication, <span class="who">Comm Service</span> looks up the customer email (gated by X-Internal-Token).' },
+      { from: 'comm',     to: 'resend',    label: 'POST /emails &#xd7; 25', desc: 'One Resend API call per recipient. Each tagged with <code>communication_id</code> so webhooks can resolve back.' },
       { from: 'resend',   to: 'customer',  label: 'deliver',            desc: '<span class="who">Resend</span> delivers the actual email to the recipient\'s inbox.' },
-      { from: 'comm',     to: 'postgres',  label: 'INSERT sent events', desc: '<span class="who">Comm Service</span> appends a "sent" event per communication (append-only event sourcing).' },
-      { from: 'workflow', to: 'workflow',  label: 'step.sleep("30 seconds")', desc: 'Workflow durably sleeps to respect Resend\'s rate limit. State persists if Cloudflare restarts.' },
-      { from: 'workflow', to: 'comm',      label: 'step.do(send-batch-2)', desc: 'Next batch fires after the sleep. Loop until all communications dispatched. ✓' }
+      { from: 'comm',     to: 'postgres',  label: 'INSERT sent events', desc: '<span class="who">Comm Service</span> appends a sent event per communication (append-only event sourcing).' },
+      { from: 'workflow', to: 'workflow',  label: 'step.sleep(30s)',    desc: 'Workflow durably sleeps to respect Resend\'s rate limit. State persists if Cloudflare restarts.' },
+      { from: 'workflow', to: 'comm',      label: 'step.do(batch-2/25)', desc: 'Next batch fires after the sleep. Loop until all communications dispatched. &#10003;' }
     ]
   },
 
   webhook: {
-    title: 'Resend Webhook → Analytics Update',
+    title: 'Resend Webhook &#8594; Analytics Update',
     steps: [
       { from: 'customer', to: 'resend',    label: 'opens email',        desc: '<span class="who">Recipient</span> opens the email in their inbox. Resend\'s tracking pixel fires.' },
-      { from: 'resend',   to: 'comm',      label: 'POST /webhooks/resend?token={email.opened, tags}', desc: '<span class="who">Resend</span> sends a webhook event to Comm Service with the communication_id tag.' },
-      { from: 'comm',     to: 'comm',      label: 'verify token',       desc: '<span class="who">Comm Service</span> checks the shared secret query token.' },
+      { from: 'resend',   to: 'comm',      label: 'POST /webhooks/resend?token={event}', desc: '<span class="who">Resend</span> sends a webhook event (opened, clicked, bounced, complained) to Comm Service with communication_id tag.' },
+      { from: 'comm',     to: 'comm',      label: 'verify shared secret', desc: '<span class="who">Comm Service</span> checks the shared secret query token.' },
       { from: 'comm',     to: 'postgres',  label: 'SELECT Communication by tag', desc: 'Resolves the communication from the tag (or external_id fallback).' },
-      { from: 'comm',     to: 'postgres',  label: 'INSERT opened event', desc: 'Appends an "opened" event (append-only — never updates).' },
+      { from: 'comm',     to: 'postgres',  label: 'INSERT opened event', desc: 'Appends an opened event (append-only — never updates existing rows).' },
       { from: 'comm',     to: 'app',       label: 'POST /callbacks/events', desc: '<span class="who">Comm Service</span> notifies App Service so analytics can react in near-real-time.' },
-      { from: 'app',      to: 'postgres',  label: 'UPDATE CampaignPerformance (open_count++)', desc: '<span class="who">App Service</span> increments the open count and recomputes derived rates.' },
-      { from: 'frontend', to: 'worker',    label: 'GET /dashboard/stats (next poll)', desc: 'Next time the dashboard refreshes, it sees the updated numbers via the Worker (KV cache miss → fresh data).' },
-      { from: 'worker',   to: 'app',       label: 'proxy',              desc: 'Worker forwards to App Service.' },
-      { from: 'app',      to: 'frontend',  label: 'updated stats',      desc: 'Dashboard reflects the new open. ✓' }
+      { from: 'app',      to: 'postgres',  label: 'UPDATE CampaignPerformance', desc: '<span class="who">App Service</span> increments the open count and recomputes derived rates.' },
+      { from: 'frontend', to: 'worker',    label: 'GET /dashboard/stats (poll)', desc: 'Next time the dashboard refreshes, it sees the updated numbers via the Worker.' },
+      { from: 'worker',   to: 'app',       label: 'proxy',              desc: 'Worker forwards to App Service (KV cache miss &#8594; fresh data).' },
+      { from: 'app',      to: 'frontend',  label: 'updated stats',      desc: 'Dashboard reflects the new open. &#10003;' }
     ]
   },
 
   chat: {
-    title: 'AI Command Centre (Durable Object chat history)',
+    title: 'AI Command Centre (Durable Object + LangGraph + Groq)',
     steps: [
       { from: 'frontend', to: 'worker',    label: 'GET /command-centre/history', desc: 'User opens the AI Command Centre overlay. <span class="who">Frontend</span> requests chat history.' },
-      { from: 'worker',   to: 'do_chat',   label: 'idFromName(hash(auth)) → stub.getHistory()', desc: '<span class="who">Worker</span> routes to the user-specific Durable Object by hashing the Authorization header.' },
-      { from: 'do_chat',  to: 'do_chat',   label: 'SELECT FROM messages', desc: '<span class="who">DO</span> queries its embedded SQLite database (free on Workers plan).' },
+      { from: 'worker',   to: 'do_chat',   label: 'idFromName(hash(auth))', desc: '<span class="who">Worker</span> routes to the user-specific Durable Object by hashing the Authorization header.' },
+      { from: 'do_chat',  to: 'do_chat',   label: 'SELECT FROM messages', desc: '<span class="who">DO</span> queries its embedded SQLite database.' },
       { from: 'do_chat',  to: 'worker',    label: '[ messages ]',       desc: 'Returns past messages.' },
       { from: 'worker',   to: 'frontend',  label: '{ history }',        desc: 'Frontend prepends past messages to the chat UI.' },
-      { from: 'user',     to: 'frontend',  label: 'types message',      desc: '<span class="who">User</span> types a question.' },
-      { from: 'frontend', to: 'worker',    label: 'POST /command-centre/chat { query }', desc: '<span class="who">Frontend</span> sends the message.' },
-      { from: 'worker',   to: 'do_chat',   label: 'stub.appendMessage("user", text)', desc: '<span class="who">Worker</span> writes the user message to the DO BEFORE proxying upstream.' },
+      { from: 'user',     to: 'frontend',  label: 'types question',     desc: '<span class="who">User</span> types a question about customers, campaigns, or analytics.' },
+      { from: 'frontend', to: 'worker',    label: 'POST /command-centre/chat', desc: '<span class="who">Frontend</span> sends the message to the Worker.' },
+      { from: 'worker',   to: 'do_chat',   label: 'stub.appendMessage(user)', desc: '<span class="who">Worker</span> writes the user message to the DO BEFORE proxying upstream.' },
       { from: 'worker',   to: 'app',       label: 'POST /agents/command-centre', desc: 'Worker proxies the query to App Service.' },
       { from: 'app',      to: 'agent',     label: 'POST /agents/command-centre', desc: 'App Service forwards to Agent Service.' },
-      { from: 'agent',    to: 'agent',     label: 'command_centre_graph.ainvoke', desc: '<span class="who">Agent Service</span> runs the CommandCentre LangGraph node (synchronous — no RQ for chat).' },
-      { from: 'agent',    to: 'app',       label: '{ response }',       desc: 'Agent returns the structured response.' },
+      { from: 'agent',    to: 'groq',      label: 'CommandCentre: LLM call', desc: '<span class="who">Agent Service</span> runs the CommandCentre LangGraph node, which calls <span class="who">Groq</span> with the user query + live data context.' },
+      { from: 'groq',     to: 'agent',     label: '{ structured response }', desc: '<span class="who">Groq</span> returns a structured answer with reasoning, confidence, supporting data, and predicted outcome.' },
+      { from: 'agent',    to: 'app',       label: '{ response }',       desc: 'Agent returns the structured response to App Service.' },
       { from: 'app',      to: 'worker',    label: '{ response }',       desc: 'App Service relays.' },
-      { from: 'worker',   to: 'do_chat',   label: 'stub.appendMessage("assistant", text)', desc: 'Worker writes the assistant reply to the DO.' },
-      { from: 'worker',   to: 'frontend',  label: '{ response }',       desc: 'Chat UI shows the new reply. On next page reload, history will hydrate from the DO. ✓' }
+      { from: 'worker',   to: 'do_chat',   label: 'stub.appendMessage(assistant)', desc: 'Worker writes the assistant reply to the DO for persistence.' },
+      { from: 'worker',   to: 'frontend',  label: '{ response }',       desc: 'Chat UI shows the new reply. On next page load, history hydrates from the DO. &#10003;' }
     ]
   }
 };
@@ -524,10 +548,7 @@ const VIEW_W = 1280, VIEW_H = 760;
 
 function nodeCenterPct(key) {
   const n = NODES[key];
-  return {
-    cxPct: ((n.x + n.w / 2) / VIEW_W) * 100,
-    cyPct: ((n.y + n.h / 2) / VIEW_H) * 100
-  };
+  return { cxPct: ((n.x + n.w / 2) / VIEW_W) * 100, cyPct: ((n.y + n.h / 2) / VIEW_H) * 100 };
 }
 
 function buildNodes() {
@@ -554,16 +575,15 @@ function buildConnections() {
   for (const [a, b] of CONNECTIONS) {
     const A = NODES[a], B = NODES[b];
     if (!A || !B) continue;
-    const x1 = A.x + A.w / 2;
-    const y1 = A.y + A.h / 2;
-    const x2 = B.x + B.w / 2;
-    const y2 = B.y + B.h / 2;
+    const x1 = A.x + A.w / 2, y1 = A.y + A.h / 2;
+    const x2 = B.x + B.w / 2, y2 = B.y + B.h / 2;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', x1);
     line.setAttribute('y1', y1);
     line.setAttribute('x2', x2);
     line.setAttribute('y2', y2);
     line.setAttribute('class', 'conn-line');
+    line.setAttribute('marker-end', 'url(#arrowhead)');
     line.dataset.from = a;
     line.dataset.to = b;
     svg.appendChild(line);
@@ -579,6 +599,7 @@ function highlightConnection(from, to, on) {
     const a = line.dataset.from, b = line.dataset.to;
     if ((a === from && b === to) || (a === to && b === from)) {
       line.classList.toggle('active', on);
+      line.setAttribute('marker-end', on ? 'url(#arrowhead-active)' : 'url(#arrowhead)');
     }
   });
 }
@@ -604,7 +625,7 @@ function selectNode(key) {
   nodeEl(key).classList.add('selected');
   const n = NODES[key];
   infoTag.textContent = n.tag;
-  infoTitle.textContent = n.label + (n.sub ? ' · ' + n.sub : '');
+  infoTitle.textContent = n.label + (n.sub ? ' \u00b7 ' + n.sub : '');
   infoDesc.textContent = n.info.role;
   infoList.innerHTML = (n.info.files || []).map(f => `<li><code>${f}</code></li>`).join('');
   infoTier.textContent = n.info.tier || '';
@@ -613,7 +634,7 @@ function selectNode(key) {
 function renderInitialInfo() {
   infoTag.textContent = 'SELECT';
   infoTitle.textContent = 'Click a node to learn more';
-  infoDesc.innerHTML = 'Each box is a real component from the Xeno CRM codebase. Click any to see what it does, the files it lives in, and how it talks to the rest of the system. Or press <strong>▶ Play</strong> to animate a request flow.';
+  infoDesc.innerHTML = 'Each box is a real component from the Xeno CRM codebase. Click any to see what it does, the files it lives in, and how it talks to the rest of the system. Or press <strong>&#9654; Play</strong> to animate a request flow.';
   infoList.innerHTML = '';
   infoTier.textContent = '';
 }
@@ -637,7 +658,7 @@ let playing = false;
 let rafId = null;
 let stepStart = 0;
 let speed = 1;
-const BASE_STEP_DURATION = 1700; // ms per step at 1x
+const BASE_STEP_DURATION = 1700;
 
 let currentPacket = null;
 let currentPacketLabel = null;
@@ -650,7 +671,7 @@ speedSlider.addEventListener('input', () => {
 flowSelect.addEventListener('change', () => {
   reset();
   currentFlow = FLOWS[flowSelect.value];
-  stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — press ▶ Play to start.`;
+  stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — press &#9654; Play to start.`;
   stepCounter.textContent = `0 / ${currentFlow.steps.length}`;
 });
 
@@ -673,7 +694,7 @@ pauseBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   reset();
-  stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — press ▶ Play to start.`;
+  stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — press &#9654; Play to start.`;
 });
 
 function reset() {
@@ -691,7 +712,10 @@ function reset() {
 function clearActives() {
   diagram.querySelectorAll('.node.active').forEach(n => n.classList.remove('active'));
   diagram.querySelectorAll('.node.dim').forEach(n => n.classList.remove('dim'));
-  svg.querySelectorAll('.conn-line.active').forEach(l => l.classList.remove('active'));
+  svg.querySelectorAll('.conn-line.active').forEach(l => {
+    l.classList.remove('active');
+    l.setAttribute('marker-end', 'url(#arrowhead)');
+  });
 }
 
 function dimUnrelated(...activeKeys) {
@@ -748,7 +772,7 @@ function startStep(idx) {
   if (step.from !== step.to) {
     setTimeout(() => activate(step.to), 200);
   }
-  highlightConnection(step.from, step.to, true);
+    highlightConnection(step.from, step.to, true);
   createPacket(step.from, step.label);
   stepCounter.textContent = `${idx + 1} / ${currentFlow.steps.length}`;
   stepDesc.innerHTML = step.desc;
@@ -774,7 +798,6 @@ function tick(now) {
   const eased = easeInOutCubic(t);
 
   if (step.from === step.to) {
-    // self-loop animation: small orbit around the node center
     const c = nodeCenterPct(step.from);
     const radiusPx = 18;
     const rect = diagram.getBoundingClientRect();
@@ -796,7 +819,6 @@ function tick(now) {
   }
 
   if (t >= 1) {
-    // advance to next step
     stepIdx++;
     stepStart = 0;
     if (stepIdx >= currentFlow.steps.length) {
@@ -812,14 +834,12 @@ function finishFlow() {
   playBtn.disabled = false;
   pauseBtn.disabled = true;
   removePacket();
-  // Keep last actives visible briefly
   setTimeout(() => clearActives(), 700);
-  stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — complete ✓ Press ⟲ Reset to replay, or pick another flow.`;
+  stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — complete &#10003; Press &#10226; Reset to replay, or pick another flow.`;
   progressFill.style.width = '100%';
 }
 
 window.addEventListener('resize', () => {
-  // Re-position packet if mid-step
   if (currentPacket && stepStart > 0 && stepIdx < currentFlow.steps.length) {
     const step = currentFlow.steps[stepIdx];
     const elapsed = performance.now() - stepStart;
@@ -841,7 +861,7 @@ buildConnections();
 buildNodes();
 renderInitialInfo();
 stepCounter.textContent = `0 / ${currentFlow.steps.length}`;
-stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — press ▶ Play to start.`;
+stepDesc.innerHTML = `<strong>${currentFlow.title}</strong> — press &#9654; Play to start.`;
 
 </script>
 </body>

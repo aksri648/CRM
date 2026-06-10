@@ -33,6 +33,7 @@
   "vars": {
     "DEFAULT_TTL": "300",
     "CLERK_ISSUER": "https://capable-airedale-73.clerk.accounts.dev",
+    "CLERK_PUBLISHABLE_KEY": "pk_test_Y2FwYWJsZS1haXJlZGFsZS03My5jbGVyay5hY2NvdW50cy5kZXYk",
     "COMM_SERVICE_URL": "https://xeno-crm-communication-service.onrender.com"
   }
 }

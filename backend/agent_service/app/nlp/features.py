@@ -108,9 +108,17 @@ def find_negations(tokens: list[str]) -> list[int]:
     return [i for i, t in enumerate(tokens) if t in NEGATION_TOKENS]
 
 
-def is_negated(token_index: int, negation_positions: list[int], window: int = 3) -> bool:
-    """True if any negation token sits within `window` tokens to the left."""
+def is_negated(token_index: int, negation_positions: list[int], window: int = 5) -> bool:
+    """True if any negation token sits within `window` tokens to the LEFT of the match.
+
+    Window expanded from 3→5 to handle prepended negation phrases such as:
+    'Exclude customers who are loyal'  (exclude=idx 0, loyal=idx 4, distance=4).
+    Only left-side is checked: right-side negations ('loyal customers — not here')
+    are rare and would cause false positives on intra-phrase negators like
+    'have not bought' (where 'not' is PART of the phrase, not a negator of it).
+    """
     return any(0 <= token_index - p <= window for p in negation_positions)
+
 
 
 @dataclass
@@ -171,6 +179,11 @@ def _match_segment_patterns(
                     idx = tokens.index(pattern)
                     negated = is_negated(idx, negation_positions)
                     matches.append(SegmentMatch(segment, pattern, weight, negated))
+                else:
+                    # Handle 'non-<pattern>' as a negated match (e.g. 'non-vip' → loyalty, negated).
+                    non_form = f"non-{pattern}"
+                    if non_form in tokens:
+                        matches.append(SegmentMatch(segment, pattern, weight, negated=True))
     return matches
 
 

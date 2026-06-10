@@ -84,8 +84,11 @@ def _apply_rules(scores: dict[str, float], features: GoalFeatures) -> tuple[dict
         log.append(f"time_horizon={h}d < {REACTIVATION_INACTIVE_BOUNDARY_DAYS}d → lift reactivation from zero")
 
     # Rule 2: value markers boost loyalty over repeat when both are in play.
+    # Require loyalty to already have direct lexicon signal (> 0) before boosting —
+    # otherwise goals like 'frequent buyers in premium tier' would inflate loyalty
+    # from 0 and incorrectly override a repeat classification.
     if features.value_markers:
-        if scores["repeat"] > 0 and scores["loyalty"] >= 0:
+        if scores["repeat"] > 0 and scores["loyalty"] > 0:
             scores["loyalty"] += 1.5 + 0.5 * len(features.value_markers)
             log.append(f"value_markers={features.value_markers} → boost loyalty")
 
@@ -154,6 +157,17 @@ def classify(goal: str) -> SegmentPrediction:
 
     winner = max(adjusted_scores, key=lambda k: adjusted_scores[k])
     winner_score = adjusted_scores[winner]
+
+    # Deterministic tie-breaking: when multiple segments share the top score,
+    # prefer the one that appears later in SEGMENT_KEYS (more specific segments
+    # like 'loyalty', 'cross_sell', 'welcome' outrank broader ones like 'inactive').
+    # This avoids relying on Python dict iteration order.
+    top_score = adjusted_scores[winner]
+    tied = [k for k in SEGMENT_KEYS if adjusted_scores[k] == top_score]
+    if len(tied) > 1:
+        # Pick the last match in SEGMENT_KEYS priority order (later = more specific).
+        winner = tied[-1]
+        winner_score = top_score
 
     if winner_score < MIN_SIGNAL_SCORE:
         return SegmentPrediction(
