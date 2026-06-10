@@ -309,9 +309,38 @@ async def generate_campaign(data: dict, db: AsyncSession = Depends(get_db), curr
 
         approval = await create_approval(db, campaign.id, requested_by=current_user.get("sub"), reasoning=proposal)
 
+        message_variants = agent_result.get("message_variants", [])
+        supporting_message_variants = [
+            {
+                "variant": v.get("variant_type", f"Variant {i}"),
+                "message": v.get("message_body", ""),
+                "channel": v.get("channel", channel_info.get("channel", proposal.get("channel", "email"))),
+                "subject_line": v.get("subject_line", ""),
+                "cta_text": v.get("cta_text", ""),
+                "style": v.get("style", "standard"),
+            }
+            for i, v in enumerate(message_variants)
+        ]
+
+        supporting_data = {
+            "audience": segment_info.get("name", proposal.get("segment", "—")),
+            "audience_size": segment_info.get("estimated_reach"),
+            "channel": channel_info.get("channel", proposal.get("channel", "—")),
+            "predicted_open_rate": channel_info.get("expected_open_rate"),
+            "predicted_ctr": channel_info.get("expected_ctr"),
+            "predicted_revenue": channel_info.get("expected_revenue"),
+            "message_variants": supporting_message_variants,
+        }
+
         return {
-            "run_id": str(agent_run.id), "campaign_id": str(campaign.id),
-            "approval_id": str(approval.id), "proposal": proposal,
+            "run_id": str(agent_run.id),
+            "campaign_id": str(campaign.id),
+            "approval_id": str(approval.id),
+            "proposal": proposal,
+            "confidence_score": proposal.get("confidence_score"),
+            "reasoning": agent_result.get("reasoning") or proposal.get("proposal_summary"),
+            "predicted_outcome": channel_info.get("predicted_outcome_description") or proposal.get("proposal_summary"),
+            "supporting_data": supporting_data,
             "agent_trace": agent_trace,
         }
 
