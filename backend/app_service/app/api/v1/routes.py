@@ -33,6 +33,15 @@ from app.utils.logging import logger
 router = APIRouter()
 
 
+@router.post("/seed")
+async def seed_database():
+    from app.seed.seed import seed
+    from app.database import create_tables
+    await create_tables()
+    await seed()
+    return {"status": "seeded"}
+
+
 @router.post("/auth/login")
 async def login(data: AuthRequest):
     token = create_access_token({"sub": data.username, "role": "admin"})
