@@ -36,7 +36,6 @@ class CustomerResponse(BaseModel):
     name: str | None = None
     ltv: float | None = None
     orders: int | None = None
-    last_order_date: str | None = None
 
     @model_validator(mode='after')
     def alias_fields(self):
@@ -46,8 +45,6 @@ class CustomerResponse(BaseModel):
             self.ltv = float(self.total_spent) if self.total_spent is not None else None
         if self.orders is None:
             self.orders = self.total_orders
-        if self.days_since_last_order is not None and self.last_order_date is None:
-            self.last_order_date = f'{self.days_since_last_order}d ago'
         return self
 
     class Config:
