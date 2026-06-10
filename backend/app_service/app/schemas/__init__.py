@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class AuthRequest(BaseModel):
@@ -33,6 +33,27 @@ class CustomerResponse(BaseModel):
     days_since_last_order: int | None = None
     is_active: bool = True
     created_at: datetime | None = None
+    name: str | None = None
+    ltv: float | None = None
+    orders: int | None = None
+    last_order_date: str | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def alias_fields(cls, data):
+        if isinstance(data, dict):
+            first = data.get('first_name', '') or ''
+            last = data.get('last_name', '') or ''
+            if not data.get('name'):
+                data['name'] = f'{first} {last}'.strip() or None
+            if data.get('ltv') is None:
+                data['ltv'] = data.get('total_spent')
+            if data.get('orders') is None:
+                data['orders'] = data.get('total_orders')
+            days = data.get('days_since_last_order')
+            if days is not None and data.get('last_order_date') is None:
+                data['last_order_date'] = f'{days}d ago'
+        return data
 
     class Config:
         from_attributes = True

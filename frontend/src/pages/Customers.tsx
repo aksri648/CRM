@@ -45,6 +45,16 @@ function formatCurrency(val: number): string {
   return '$' + val.toLocaleString('en-US')
 }
 
+function displayDays(days: number): string {
+  if (days === 0) return 'Today'
+  if (days === 1) return '1d'
+  if (days < 30) return `${days}d`
+  const months = Math.floor(days / 30)
+  if (months === 1) return '1mo'
+  if (months < 12) return `${months}mo`
+  return `${Math.floor(months / 12)}y`
+}
+
 function relativeDate(dateStr: string | null | undefined): string {
   if (!dateStr) return '—'
   const t = new Date(dateStr).getTime()
@@ -133,7 +143,12 @@ export function Customers() {
       {error && <div className="xeno-error">{error}</div>}
       {!loading && !error && (
         <div className="xeno-customer-grid">
-          {customers.map((c) => (
+          {customers.map((c) => {
+            const customerName = c.name || `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown'
+            const ltv = c.ltv ?? c.total_spent ?? 0
+            const orders = c.orders ?? c.total_orders ?? 0
+            const lastOrder = c.last_order_date ? relativeDate(c.last_order_date) : (c.days_since_last_order != null ? displayDays(c.days_since_last_order) : '—')
+            return (
             <div key={c.id} className="xeno-customer-card">
               <div className="xeno-customer-card-header">
                 <div
@@ -141,32 +156,33 @@ export function Customers() {
                   style={
                     c.avatar
                       ? { background: `url(${c.avatar})`, backgroundSize: 'cover' }
-                      : { background: pickGradient(c.name) }
+                      : { background: pickGradient(customerName) }
                   }
                 >
-                  {!c.avatar && getInitials(c.name)}
+                  {!c.avatar && getInitials(customerName)}
                 </div>
                 <div className="xeno-customer-info">
-                  <h4>{c.name}</h4>
+                  <h4>{customerName}</h4>
                   <p>{c.email}</p>
                 </div>
               </div>
               <div className="xeno-customer-stats">
                 <div className="xeno-customer-stat">
-                  <div className="xeno-customer-stat-value">{formatCurrency(c.ltv)}</div>
+                  <div className="xeno-customer-stat-value">{formatCurrency(ltv)}</div>
                   <div className="xeno-customer-stat-label">LTV</div>
                 </div>
                 <div className="xeno-customer-stat">
-                  <div className="xeno-customer-stat-value">{c.orders}</div>
+                  <div className="xeno-customer-stat-value">{orders}</div>
                   <div className="xeno-customer-stat-label">Orders</div>
                 </div>
                 <div className="xeno-customer-stat">
-                  <div className="xeno-customer-stat-value">{relativeDate(c.last_order_date)}</div>
+                  <div className="xeno-customer-stat-value">{lastOrder}</div>
                   <div className="xeno-customer-stat-label">Last Order</div>
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
     </div>
