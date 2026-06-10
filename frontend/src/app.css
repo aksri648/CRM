@@ -1101,3 +1101,206 @@
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ===== Login Page ===== */
+
+.xeno-login-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #0f172a;
+  padding: 24px;
+}
+
+.xeno-login-card {
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid #334155;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  animation: xeno-cc-slide-in 0.3s ease-out;
+}
+
+.xeno-login-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.xeno-login-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.xeno-login-logo-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.xeno-login-tagline {
+  color: #64748b;
+  font-size: 14px;
+  margin: 0;
+}
+
+.xeno-login-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  background: #0f172a;
+  border-radius: 10px;
+  padding: 4px;
+}
+
+.xeno-login-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.xeno-login-tab.active {
+  background: #14b8a6;
+  color: #0f172a;
+}
+
+.xeno-login-tab:hover:not(.active) {
+  color: #94a3b8;
+}
+
+.xeno-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.xeno-login-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.xeno-login-field input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.xeno-login-field input:focus {
+  border-color: #14b8a6;
+}
+
+.xeno-login-field input::placeholder {
+  color: #475569;
+}
+
+.xeno-login-password-wrap {
+  position: relative;
+}
+
+.xeno-login-password-wrap input {
+  padding-right: 44px;
+}
+
+.xeno-login-password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.xeno-login-password-toggle:hover {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.xeno-login-error {
+  padding: 10px 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 13px;
+}
+
+.xeno-login-success {
+  padding: 10px 14px;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 8px;
+  color: #86efac;
+  font-size: 13px;
+}
+
+.xeno-login-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #14b8a6;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 4px;
+}
+
+.xeno-login-submit:hover:not(:disabled) {
+  background: #0d9488;
+}
+
+.xeno-login-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

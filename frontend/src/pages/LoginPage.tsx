@@ -1,110 +1,184 @@
 import { useState } from 'react'
-import { useAuth, SignIn } from '@clerk/clerk-react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/store'
+import { Loader2, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react'
 
-const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''
+const API_BASE = 'https://xeno-api-worker.akshrivastav648.workers.dev/api/v1'
 
-function ClerkLogin() {
-  const { isSignedIn, isLoaded } = useAuth()
-
-  if (!isLoaded) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#0f172a', color: '#94a3b8' }}>
-        Loading...
-      </div>
-    )
-  }
-
-  if (isSignedIn) {
-    return <Navigate to="/" replace />
-  }
-
-  return <LoginShell><SignIn routing="hash" /></LoginShell>
-}
-
-function DevLogin() {
+export function LoginPage() {
+  const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [success, setSuccess] = useState('')
   const navigate = useNavigate()
   const setToken = useAppStore((s) => s.setToken)
 
+  const switchMode = (newMode: 'login' | 'register') => {
+    setMode(newMode)
+    setError('')
+    setSuccess('')
+  }
+
   const handleLogin = async () => {
-    if (!username.trim()) return
+    if (!username.trim() || !password.trim()) {
+      setError('Please enter both username and password.')
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const res = await fetch('https://xeno-api-worker.akshrivastav648.workers.dev/api/v1/auth/login', {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password: '' }),
+        body: JSON.stringify({ username, password }),
       })
-      if (!res.ok) throw new Error('Login failed')
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || 'Invalid credentials.')
+      }
       const data = await res.json()
       setToken(data.access_token)
       navigate('/')
     } catch (e: any) {
-      setError(e.message || 'Login failed')
+      setError(e.message || 'Login failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleRegister = async () => {
+    if (!username.trim() || !password.trim()) {
+      setError('Please fill in all fields.')
+      return
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.')
+      return
+    }
+    setLoading(true)
+    setError('')
+    setSuccess('')
+    try {
+      const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.detail || 'Registration failed.')
+      }
+      setSuccess('Account created successfully! You can now sign in.')
+      switchMode('login')
+      setPassword('')
+      setConfirmPassword('')
+    } catch (e: any) {
+      setError(e.message || 'Registration failed.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <LoginShell>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-          placeholder="Username"
-          style={{
-            padding: '12px 16px', borderRadius: 8, border: '1px solid #334155',
-            background: '#0f172a', color: 'white', fontSize: 14, outline: 'none',
-          }}
-        />
-        {error && <div style={{ color: '#ef4444', fontSize: 13 }}>{error}</div>}
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          style={{
-            padding: '12px', borderRadius: 8, border: 'none',
-            background: loading ? '#0d9488' : '#14b8a6', color: 'white',
-            fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {loading ? 'Signing in...' : 'Sign In'}
-        </button>
-      </div>
-    </LoginShell>
-  )
-}
-
-function LoginShell({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      minHeight: '100vh', background: '#0f172a',
-    }}>
-      <div style={{
-        background: '#1e293b', borderRadius: 16, padding: 40,
-        width: '100%', maxWidth: 440, border: '1px solid #334155',
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 36, fontWeight: 700, color: '#14b8a6', marginBottom: 4 }}>
+    <div className="xeno-login-page">
+      <div className="xeno-login-card">
+        <div className="xeno-login-header">
+          <div className="xeno-login-logo">
+            <div className="xeno-login-logo-icon">X</div>
             Xeno AI
           </div>
-          <div style={{ color: '#64748b', fontSize: 14 }}>
-            Campaign Intelligence Platform
-          </div>
+          <p className="xeno-login-tagline">Campaign Intelligence Platform</p>
         </div>
-        {children}
+
+        <div className="xeno-login-tabs">
+          <button
+            className={`xeno-login-tab ${mode === 'login' ? 'active' : ''}`}
+            onClick={() => switchMode('login')}
+          >
+            <LogIn size={16} /> Sign In
+          </button>
+          <button
+            className={`xeno-login-tab ${mode === 'register' ? 'active' : ''}`}
+            onClick={() => switchMode('register')}
+          >
+            <UserPlus size={16} /> Create Account
+          </button>
+        </div>
+
+        <form
+          className="xeno-login-form"
+          onSubmit={(e) => {
+            e.preventDefault()
+            mode === 'login' ? handleLogin() : handleRegister()
+          }}
+        >
+          <div className="xeno-login-field">
+            <label>Username</label>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
+              autoFocus
+              autoComplete="username"
+            />
+          </div>
+
+          <div className="xeno-login-field">
+            <label>Password</label>
+            <div className="xeno-login-password-wrap">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              />
+              <button
+                type="button"
+                className="xeno-login-password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {mode === 'register' && (
+            <div className="xeno-login-field">
+              <label>Confirm Password</label>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your password"
+                autoComplete="new-password"
+              />
+            </div>
+          )}
+
+          {error && <div className="xeno-login-error">{error}</div>}
+          {success && <div className="xeno-login-success">{success}</div>}
+
+          <button className="xeno-login-submit" type="submit" disabled={loading}>
+            {loading ? (
+              <><Loader2 size={16} className="animate-spin" /> Processing...</>
+            ) : mode === 'login' ? (
+              <><LogIn size={16} /> Sign In</>
+            ) : (
+              <><UserPlus size={16} /> Create Account</>
+            )}
+          </button>
+        </form>
       </div>
     </div>
   )
-}
-
-export function LoginPage() {
-  return CLERK_KEY ? <ClerkLogin /> : <DevLogin />
 }

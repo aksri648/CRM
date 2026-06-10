@@ -48,6 +48,12 @@ async def login(data: AuthRequest):
     return AuthResponse(access_token=token, role="admin")
 
 
+@router.post("/auth/register")
+async def register(data: AuthRequest):
+    token = create_access_token({"sub": data.username, "role": "admin"})
+    return AuthResponse(access_token=token, role="admin")
+
+
 @router.get("/health")
 async def health():
     from app.clients.agent_client import get_agent_health
