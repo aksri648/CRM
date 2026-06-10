@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { useUser, useClerk } from '@clerk/clerk-react'
 import { useAppStore } from '@/store'
 import {
   LayoutDashboard, Wand2, Lightbulb, Users, Layers, Megaphone,
   FlaskConical, BarChart3, GitCompare, Bot, Settings, LogOut, Brain,
 } from 'lucide-react'
-
-const CLERK_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''
+import { AICommandCentre } from '@/components/AICommandCentre'
 
 const navItems = [
   { section: 'Main' },
@@ -33,62 +31,10 @@ const navItems = [
   { label: 'Settings', icon: Settings, path: '/settings', badge: null },
 ]
 
-function FallbackFooter() {
-  const token = useAppStore((s) => s.token)
-  const logout = useAppStore((s) => s.logout)
-
-  return (
-    <div className="xeno-sidebar-footer">
-      <div className="xeno-sidebar-user">
-        <div className="xeno-sidebar-avatar">?</div>
-        <div className="xeno-sidebar-user-info">
-          <div className="xeno-sidebar-user-name">Dev User</div>
-          <div className="xeno-sidebar-user-role">Admin</div>
-        </div>
-      </div>
-      {token && (
-        <button className="xeno-sidebar-logout" title="Sign out" onClick={logout}>
-          <LogOut size={16} />
-        </button>
-      )}
-    </div>
-  )
-}
-
-function ClerkFooter() {
-  const { user } = useUser()
-  const { signOut } = useClerk()
-  const logout = useAppStore((s) => s.logout)
-
-  const handleSignOut = () => {
-    logout()
-    signOut()
-  }
-
-  return (
-    <div className="xeno-sidebar-footer">
-      <div className="xeno-sidebar-user">
-        <div className="xeno-sidebar-avatar">
-          {user?.firstName?.[0] || user?.emailAddresses?.[0]?.emailAddress?.[0] || '?'}
-        </div>
-        <div className="xeno-sidebar-user-info">
-          <div className="xeno-sidebar-user-name">
-            {user?.fullName || user?.emailAddresses?.[0]?.emailAddress || 'User'}
-          </div>
-          <div className="xeno-sidebar-user-role">Admin</div>
-        </div>
-      </div>
-      <button className="xeno-sidebar-logout" title="Sign out" onClick={handleSignOut}>
-        <LogOut size={16} />
-      </button>
-    </div>
-  )
-}
-
-import { AICommandCentre } from '@/components/AICommandCentre'
-
 export function Sidebar() {
   const [showCC, setShowCC] = useState(false)
+  const token = useAppStore((s) => s.token)
+  const logout = useAppStore((s) => s.logout)
 
   return (
     <div className="xeno-sidebar">
@@ -129,7 +75,20 @@ export function Sidebar() {
           )
         )}
       </nav>
-      {CLERK_KEY ? <ClerkFooter /> : <FallbackFooter />}
+      <div className="xeno-sidebar-footer">
+        <div className="xeno-sidebar-user">
+          <div className="xeno-sidebar-avatar">A</div>
+          <div className="xeno-sidebar-user-info">
+            <div className="xeno-sidebar-user-name">Admin</div>
+            <div className="xeno-sidebar-user-role">Admin</div>
+          </div>
+        </div>
+        {token && (
+          <button className="xeno-sidebar-logout" title="Sign out" onClick={logout}>
+            <LogOut size={16} />
+          </button>
+        )}
+      </div>
       {showCC && <AICommandCentre onClose={() => setShowCC(false)} />}
     </div>
   )
