@@ -1,3 +1,4 @@
+import asyncio
 import json
 import random
 from datetime import datetime
@@ -12,7 +13,7 @@ from app.agents.prompts import (
 )
 from app.agents.schemas import (
     AthenaOutput, AtlasOutput, SophiaOutput, MercuryOutput,
-    NovaOutput, CommandCentreOutput,
+    NovaOutput, CommandCentreOutput, DataFetchRequest,
 )
 from app.config import settings
 from app.nlp import classify as nlp_classify
@@ -425,100 +426,120 @@ async def command_centre_agent(state: MarketingState) -> dict:
     )
 
     query = state.get("goal", "") or ""
-    query_l = query.lower()
-    context: dict = {}
-    intent = "general"
     conversation_history = state.get("metadata", {}).get("conversation_history", []) or []
 
-    # Step 1: intent detection (keyword-based + LLM fallback)
-    if any(w in query_l for w in ["status", "pipeline", "health", "queue", "worker", "system"]):
-        intent = "status"
-        context["pipeline"] = await fetch_pipeline_status()
-        context["dashboard"] = await fetch_dashboard_stats()
-    elif any(w in query_l for w in ["customer", "audience", "people", "users", "user", "contact"]):
-        intent = "customers"
-        search = None
-        for prefix in ["customer ", "audience ", "find ", "search ", "show me "]:
-            if prefix in query_l:
-                search = query_l.split(prefix, 1)[1].strip()
-                break
-        context["customers"] = await fetch_customers(search=search, page_size=10) if search else await fetch_customers(page_size=10)
-        context["lifecycle_distribution"] = await fetch_lifecycle_distribution()
-    elif any(w in query_l for w in ["campaign", "dispatch", "send", "message", "notification"]):
-        intent = "campaigns"
-        context["campaigns"] = await fetch_campaigns(page_size=10)
-    elif any(w in query_l for w in ["proposal", "agent", "run", "approval", "pending"]):
-        intent = "proposals"
-        context["proposals"] = await fetch_proposals()
-    elif any(w in query_l for w in ["channel", "analytics", "performance", "metric", "conversion"]):
-        intent = "analytics"
-        context["channel_analytics"] = await fetch_channel_analytics()
-    elif any(w in query_l for w in ["opportunity", "discover", "recommend", "suggestion"]):
-        intent = "opportunities"
-        context["opportunities"] = await fetch_opportunities(page_size=10)
-    elif any(w in query_l for w in ["segment", "group", "filter", "target"]):
-        intent = "segments"
-        context["segments"] = await fetch_segments(page_size=10)
-    elif any(w in query_l for w in ["test", "experiment", "ab", "variant", "split"]):
-        intent = "ab_tests"
-        context["ab_tests"] = await fetch_ab_tests(page_size=10)
-    elif any(w in query_l for w in ["revenue", "sales", "income", "money", "profit"]):
-        intent = "revenue"
-        context["dashboard"] = await fetch_dashboard_stats()
-        context["channel_analytics"] = await fetch_channel_analytics()
-    elif any(w in query_l for w in ["report", "summary", "overview", "what's happening", "how are"]):
-        intent = "overview"
-        context["dashboard"] = await fetch_dashboard_stats()
-        context["pipeline"] = await fetch_pipeline_status()
-        context["campaigns"] = await fetch_campaigns(page_size=5)
-    else:
-        intent = "general"
-        context["dashboard"] = await fetch_dashboard_stats()
-        context["pipeline"] = await fetch_pipeline_status()
-        context["campaigns"] = await fetch_campaigns(page_size=5)
-        context["customers"] = await fetch_customers(page_size=5)
-        context["segments"] = await fetch_segments(page_size=5)
+    # Build conversation context string
+    history_text = ""
+    if conversation_history:
+        recent = conversation_history[-6:]
+        history_text = "\n".join([
+            f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('text', m.get('content', ''))}"
+            for m in recent
+        ])
+        history_text = f"\n\nPrevious conversation:\n{history_text}"
 
-    trimmed = _trim_for_context(context)
+    # Map source names to fetcher functions
+    SOURCE_MAP = {
+        "dashboard": fetch_dashboard_stats,
+        "pipeline": fetch_pipeline_status,
+        "campaigns": fetch_campaigns,
+        "customers": fetch_customers,
+        "segments": fetch_segments,
+        "analytics": fetch_channel_analytics,
+        "opportunities": fetch_opportunities,
+        "proposals": fetch_proposals,
+        "lifecycle": fetch_lifecycle_distribution,
+        "ab_tests": fetch_ab_tests,
+    }
+
+    context: dict = {}
+    sources_used: list[str] = []
     response_text = ""
     llm_confidence = 0.92
 
-    # Step 2: render response. Prefer LLM, fall back to deterministic templates.
     if llm_available():
         try:
-            # Build conversation context for LLM
-            history_text = ""
-            if conversation_history:
-                recent = conversation_history[-6:]  # Last 3 exchanges
-                history_text = "\n\n".join([
-                    f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('text', m.get('content', ''))}"
-                    for m in recent
-                ])
-                history_text = f"\n\nConversation history:\n{history_text}"
+            # ── PASS 1: LLM decides what data to fetch ──
+            plan: DataFetchRequest = await _structured_call(
+                COMMAND_CENTRE_SYSTEM,
+                (
+                    f"STEP 1 — DATA PLANNING\n\n"
+                    f"Operator question: {query}{history_text}\n\n"
+                    f"Decide which data sources to fetch. Available sources: {', '.join(SOURCE_MAP.keys())}.\n"
+                    f"Return your decision as a DataFetchRequest."
+                ),
+                DataFetchRequest,
+                temperature=0.1,
+            )
 
+            # ── FETCH: Retrieve all requested data ──
+            fetch_tasks = []
+            fetch_names = []
+            for source in plan.sources:
+                source_lower = source.lower().strip()
+                if source_lower in SOURCE_MAP:
+                    fn = SOURCE_MAP[source_lower]
+                    if source_lower == "customers" and plan.query_hint:
+                        fetch_tasks.append(fn(search=plan.query_hint, page_size=10))
+                    elif source_lower in ("campaigns", "customers", "opportunities", "ab_tests"):
+                        fetch_tasks.append(fn(page_size=10))
+                    else:
+                        fetch_tasks.append(fn())
+                    fetch_names.append(source_lower)
+
+            results = await asyncio.gather(*fetch_tasks, return_exceptions=True)
+            for name, result in zip(fetch_names, results):
+                if isinstance(result, Exception):
+                    logger.warning("command_centre_fetch_failed", source=name, error=str(result))
+                    context[name] = {"error": str(result)}
+                else:
+                    context[name] = result
+
+            sources_used = fetch_names
+            trimmed = _trim_for_context(context)
+
+            # ── PASS 2: LLM summarizes the fetched data ──
             result: CommandCentreOutput = await _structured_call(
                 COMMAND_CENTRE_SYSTEM,
                 (
+                    f"STEP 2 — RESPONSE\n\n"
                     f"Operator question: {query}{history_text}\n\n"
-                    f"Detected intent: {intent}\n\n"
-                    f"Live system data (JSON):\n{json.dumps(trimmed, default=str)}"
+                    f"Data sources fetched: {', '.join(sources_used)}\n\n"
+                    f"Fetched data (JSON):\n{json.dumps(trimmed, default=str)}\n\n"
+                    f"Summarize this data into a clear, helpful answer to the operator's question."
                 ),
                 CommandCentreOutput,
                 temperature=0.2,
             )
             response_text = result.response
             llm_confidence = result.confidence_score
+
         except Exception as e:
             logger.warning("command_centre_llm_failed_falling_back", error=str(e))
 
+    # ── FALLBACK: deterministic summary when LLM is unavailable ──
     if not response_text:
-        response_text = _deterministic_command_centre_response(intent, context)
+        # Fetch everything for the deterministic path too
+        if not context:
+            results = await asyncio.gather(
+                fetch_dashboard_stats(), fetch_pipeline_status(),
+                fetch_campaigns(page_size=5), fetch_customers(page_size=5),
+                fetch_segments(page_size=5), fetch_channel_analytics(),
+                return_exceptions=True,
+            )
+            keys = ["dashboard", "pipeline", "campaigns", "customers", "segments", "channel_analytics"]
+            for name, result in zip(keys, results):
+                if not isinstance(result, Exception):
+                    context[name] = result
+            sources_used = keys
+        response_text = _deterministic_command_centre_response(context)
 
+    trimmed = _trim_for_context(context)
     output = {
-        "reasoning": f"Detected intent '{intent}'. Fetched live data from App Service. Composed response{' via LLM' if llm_available() and response_text else ''}.",
+        "reasoning": f"Fetched sources: {', '.join(sources_used) or 'none'}. Composed response{' via LLM (2-pass)' if llm_available() and response_text else ' (deterministic)'}.",
         "confidence_score": llm_confidence,
         "supporting_data": trimmed,
-        "predicted_outcome": {"intent": intent},
+        "predicted_outcome": {"sources_fetched": sources_used},
         "response": response_text,
     }
     return {
@@ -529,82 +550,76 @@ async def command_centre_agent(state: MarketingState) -> dict:
     }
 
 
-def _deterministic_command_centre_response(intent: str, context: dict) -> str:
-    """Original keyword-templated rendering, kept as a fallback when the LLM is unavailable."""
-    if intent == "status":
-        pipeline = context.get("pipeline", {}) or {}
-        dashboard = context.get("dashboard", {}) or {}
-        return (
-            f"**System Status**\n"
-            f"- Worker: {pipeline.get('worker_status', 'unknown')}\n"
-            f"- Queue Depth: {pipeline.get('queue_depth', 0)} messages\n"
-            f"- Retry Queue: {pipeline.get('retry_queue_size', 0)}\n"
-            f"- Dead Letter Queue: {pipeline.get('dlq_size', 0)}\n"
-            f"- Active Campaigns: {dashboard.get('active_campaigns', 0)}\n"
-            f"- Total Customers: {dashboard.get('total_customers', 0):,}"
-        )
-    if intent == "customers":
-        customers_data = context.get("customers", {}) or {}
-        lifecycle = context.get("lifecycle_distribution", []) or []
-        customers = customers_data.get("customers", [])
-        total = customers_data.get("total", 0)
-        lines = [f"**Customers Overview** — {total:,} total"]
-        for c in customers[:5]:
-            name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
-            lines.append(f"- {name} ({c.get('email', 'N/A')}) — {c.get('lifecycle_stage', 'unknown')}, ₹{c.get('total_spent', 0):,.0f} spent")
-        if lifecycle:
-            lines.append("\n**Lifecycle Distribution:**")
-            for entry in lifecycle[:6]:
-                if isinstance(entry, dict):
-                    lines.append(f"- {entry.get('stage', entry.get('lifecycle_stage', 'unknown'))}: {entry.get('count', 0)}")
-        return "\n".join(lines)
-    if intent == "campaigns":
-        campaigns_data = context.get("campaigns", {}) or {}
-        campaigns = campaigns_data.get("campaigns", [])
-        total = campaigns_data.get("total", 0)
-        lines = [f"**Campaigns** — {total} total"]
-        for c in campaigns[:5]:
-            lines.append(f"- {c.get('name', 'Unnamed')} ({c.get('channel', '—')}) — {c.get('status', 'unknown')}")
-        return "\n".join(lines)
-    if intent == "proposals":
-        proposals = context.get("proposals", []) or []
-        lines = [f"**Agent Proposals & Runs** — {len(proposals)} recent"]
-        for p in proposals[:5]:
-            created = (p.get("created_at") or "")[:19].replace("T", " ")
-            lines.append(f"- {p.get('run_type', 'unknown')}: {p.get('status', 'unknown')} ({created})")
-        return "\n".join(lines)
-    if intent == "analytics":
-        channels = context.get("channel_analytics", []) or []
-        lines = [f"**Channel Performance** — {len(channels)} channels"]
-        for ch in channels:
-            lines.append(
-                f"- {ch.get('channel', 'unknown')}: {ch.get('sent_count', 0):,} sent, "
-                f"{ch.get('open_count', 0):,} opened, {ch.get('conversion_count', 0):,} converted, "
-                f"₹{ch.get('revenue', 0):,.0f} revenue"
-            )
-        return "\n".join(lines)
-    if intent == "opportunities":
-        opp_data = context.get("opportunities", {}) or {}
-        opportunities = opp_data.get("opportunities", [])
-        total = opp_data.get("total", 0)
-        lines = [f"**Opportunities** — {total} total"]
-        for o in opportunities[:5]:
-            lines.append(f"- {o.get('title', 'Unnamed')} ({o.get('opportunity_type', 'general')}) — {o.get('status', 'pending')}, ₹{o.get('expected_revenue', 0):,.0f}")
-        return "\n".join(lines)
+def _deterministic_command_centre_response(context: dict) -> str:
+    """Rich deterministic summary when the LLM is unavailable — uses all available data."""
+    lines = []
+
+    dashboard = context.get("dashboard", {}) or {}
+    if dashboard:
+        lines.append("**Dashboard Overview**")
+        lines.append(f"- Total Customers: {dashboard.get('total_customers', 0):,}")
+        lines.append(f"- Active Campaigns: {dashboard.get('active_campaigns', 0)}")
+        lines.append(f"- Total Revenue: ₹{dashboard.get('total_revenue', 0):,.0f}")
+        lines.append(f"- Total Orders: {dashboard.get('total_orders', 0):,}")
+        lines.append("")
 
     pipeline = context.get("pipeline", {}) or {}
-    dashboard = context.get("dashboard", {}) or {}
-    return (
-        f"I can help you with:\n"
-        f"1. **System Status** — Worker: {pipeline.get('worker_status', 'unknown')}, Queue: {pipeline.get('queue_depth', 0)}\n"
-        f"2. **Customers** — {dashboard.get('total_customers', 0):,} total, segmented by lifecycle stage\n"
-        f"3. **Campaigns** — {dashboard.get('active_campaigns', 0)} active, across multiple channels\n"
-        f"4. **Channel Analytics** — Performance breakdown by channel\n"
-        f"5. **Agent Proposals** — AI campaign proposals and approvals\n"
-        f"6. **Opportunities** — AI-discovered marketing opportunities\n\n"
-        f"Try asking: \"What is the system status?\", \"Show me customers\", "
-        f"\"How are my campaigns doing?\", or \"List recent proposals\"."
-    )
+    if pipeline:
+        lines.append("**System Status**")
+        lines.append(f"- Worker: {pipeline.get('worker_status', 'unknown')}")
+        lines.append(f"- Queue Depth: {pipeline.get('queue_depth', 0)}")
+        lines.append(f"- Retry Queue: {pipeline.get('retry_queue_size', 0)}")
+        lines.append(f"- Dead Letter Queue: {pipeline.get('dlq_size', 0)}")
+        lines.append("")
+
+    campaigns_data = context.get("campaigns", {}) or {}
+    campaigns = campaigns_data.get("campaigns", [])
+    if campaigns:
+        lines.append(f"**Recent Campaigns** — {campaigns_data.get('total', len(campaigns))} total")
+        for c in campaigns[:5]:
+            lines.append(f"- {c.get('name', 'Unnamed')} ({c.get('channel', '—')}) — {c.get('status', 'unknown')}")
+        lines.append("")
+
+    customers_data = context.get("customers", {}) or context.get("customers_summary", {}) or {}
+    customers = customers_data.get("customers", [])
+    if customers:
+        lines.append(f"**Top Customers** — {customers_data.get('total', len(customers)):,} total")
+        for c in customers[:5]:
+            name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+            lines.append(f"- {name} — {c.get('lifecycle_stage', 'unknown')}, ₹{c.get('total_spent', 0):,.0f} spent")
+        lines.append("")
+
+    segments_data = context.get("segments", {}) or {}
+    segments = segments_data.get("segments", [])
+    if segments:
+        lines.append(f"**Segments** — {segments_data.get('total', len(segments))} total")
+        for s in segments[:5]:
+            lines.append(f"- {s.get('name', 'Unnamed')}: {s.get('customer_count', 0)} customers")
+        lines.append("")
+
+    channels = context.get("channel_analytics", []) or context.get("analytics", []) or []
+    if channels:
+        lines.append("**Channel Performance**")
+        for ch in channels[:5]:
+            lines.append(
+                f"- {ch.get('channel', 'unknown')}: {ch.get('sent_count', 0):,} sent, "
+                f"{ch.get('open_count', 0):,} opened, ₹{ch.get('revenue', 0):,.0f} revenue"
+            )
+        lines.append("")
+
+    if not lines:
+        return (
+            "Here's what I can help with:\n"
+            "- **System Status** — worker health, queue depth\n"
+            "- **Customers** — lifecycle, spend, search\n"
+            "- **Campaigns** — status, channel, performance\n"
+            "- **Analytics** — channel metrics, conversions\n"
+            "- **Segments** — customer groups\n"
+            "- **Opportunities** — AI-discovered suggestions\n\n"
+            "Try: \"What's the system status?\", \"Show me top customers\", \"How are my campaigns?\""
+        )
+
+    return "\n".join(lines)
 
 
 # ===========================================================================

@@ -88,3 +88,18 @@ class CommandCentreOutput(BaseModel):
         )
     )
     confidence_score: float = Field(ge=0.0, le=1.0)
+
+
+class DataFetchRequest(BaseModel):
+    """LLM decides which data sources to fetch for the user's question."""
+    sources: list[str] = Field(
+        description=(
+            "List of data sources to fetch. Available: "
+            "dashboard, pipeline, campaigns, customers, segments, analytics, "
+            "opportunities, proposals, lifecycle, ab_tests"
+        )
+    )
+    query_hint: str = Field(
+        default="",
+        description="Optional refinement, e.g. a customer name to search for, or a specific campaign channel."
+    )
