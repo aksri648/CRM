@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -21,6 +22,9 @@ async def get_db():
 
 async def create_tables():
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS crm"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS analytics"))
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS system"))
         from app.models.crm import Customer, Order, Product, Segment, SegmentSnapshot
         from app.models.campaign import Campaign, CampaignVariant, ABTest, ABTestResult, MarketingGoal, CampaignOpportunity, ApprovalRequest
         from app.models.analytics import CampaignPerformance, ChannelPerformance, AudiencePerformance, RevenueAttribution

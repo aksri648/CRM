@@ -5,6 +5,7 @@ interface SecretsBinding {
 interface Env {
   API_CACHE: KVNamespace;
   APP_SERVICE_URL: SecretsBinding;
+  CLERK_PUBLISHABLE_KEY?: string;
   DEFAULT_TTL: string;
 }
 
@@ -48,6 +49,15 @@ export default {
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
+    }
+
+    if (url.pathname === "/api/v1/config") {
+      return new Response(JSON.stringify({
+        clerkPublishableKey: env.CLERK_PUBLISHABLE_KEY || "",
+      }), {
+        status: 200,
+        headers: { ...cors, "Content-Type": "application/json" },
+      });
     }
 
     if (INVALIDATE_METHODS.has(request.method)) {

@@ -1,3 +1,4 @@
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -21,5 +22,6 @@ async def get_db():
 
 async def create_tables():
     async with engine.begin() as conn:
+        await conn.execute(text("CREATE SCHEMA IF NOT EXISTS communications"))
         from app.models.communication import Communication, CommunicationEvent, DeliveryAttempt, CallbackEvent, QueueJob
         await conn.run_sync(Base.metadata.create_all)

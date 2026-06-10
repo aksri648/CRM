@@ -16,6 +16,7 @@
     }
   ],
   "vars": {
-    "DEFAULT_TTL": "300"
+    "DEFAULT_TTL": "300",
+    "CLERK_ISSUER": "https://capable-airedale-73.clerk.accounts.dev"
   }
 }

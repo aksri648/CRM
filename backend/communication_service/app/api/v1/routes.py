@@ -77,7 +77,7 @@ async def list_events(communication_id: uuid.UUID, db: AsyncSession = Depends(ge
     events = result.scalars().all()
     return [{"id": e.id, "communication_id": e.communication_id, "event_type": e.event_type,
              "timestamp": e.timestamp.isoformat() if e.timestamp else None,
-             "metadata": e.metadata, "created_at": e.created_at.isoformat() if e.created_at else None} for e in events]
+             "metadata": e.event_metadata, "created_at": e.created_at.isoformat() if e.created_at else None} for e in events]
 
 
 @router.post("/simulate/lifecycle")

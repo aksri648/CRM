@@ -44,7 +44,7 @@ class CommunicationEvent(Base):
     communication_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("communications.communications.id"), index=True)
     event_type: Mapped[str] = mapped_column(String(50), index=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    metadata: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    event_metadata: Mapped[dict | None] = mapped_column("metadata", JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
     communication = relationship("Communication", back_populates="events")

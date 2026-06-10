@@ -14,7 +14,7 @@ async def record_event(db: AsyncSession, communication_id: uuid.UUID, event_type
     comm = result.scalar_one_or_none()
     if not comm: return None
     ts = timestamp or datetime.utcnow()
-    event = CommunicationEvent(communication_id=communication_id, event_type=event_type, timestamp=ts, metadata=metadata or {})
+    event = CommunicationEvent(communication_id=communication_id, event_type=event_type, timestamp=ts, event_metadata=metadata or {})
     db.add(event)
     status_map = {"queued": "queued", "sent": "sent", "delivered": "delivered", "opened": "opened",
                   "read": "read", "clicked": "clicked", "converted": "converted", "failed": "failed"}
