@@ -120,7 +120,7 @@ async def seed():
                           channel=cd["channel"], status=cd["status"], expected_reach=cd["expected_reach"],
                           expected_revenue=Decimal(str(cd["expected_revenue"])),
                           approval_status="approved" if cd["status"] != "draft" else "pending")
-            db.add(c); campaigns.append(c)
+            db.add(c); await db.flush(); campaigns.append(c)
             for j, (vl, st) in enumerate(zip(["A","B","C"][:random.randint(2,3)], ["emotional","urgency","social_proof"])):
                 db.add(CampaignVariant(campaign_id=c.id, name=f"Variant {vl}", variant_type=vl,
                                        subject_line=f"Check out our offers!", message_body=f"Hey {{first_name}}, check this out!",
