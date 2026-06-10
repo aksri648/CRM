@@ -23,7 +23,7 @@ from app.services.segment_service import create_segment, get_segment, list_segme
 from app.services.analytics_service import compute_campaign_performance, get_channel_performance, get_dashboard_stats, update_campaign_performance_from_callback
 from app.services.approval_service import create_approval, list_approvals, respond_to_approval, get_approval
 from app.services.telegram_service import process_telegram_callback
-from app.clients.agent_client import call_agent_generate_campaign, call_agent_discover_opportunities
+from app.clients.agent_client import call_agent_generate_campaign, call_agent_discover_opportunities, call_agent_command_centre
 from app.clients.communication_client import dispatch_campaign_to_communication_service, simulate_campaign_lifecycle
 from app.models.crm import Product, Segment, Customer
 from app.models.campaign import Campaign, CampaignVariant, ApprovalRequest, CampaignOpportunity
@@ -371,6 +371,15 @@ async def discover_opportunities(db: AsyncSession = Depends(get_db), current_use
         agent_run.completed_at = datetime.utcnow()
         await db.commit()
         raise HTTPException(status_code=500, detail=f"Opportunity discovery failed: {str(e)}")
+
+
+@router.post("/agents/command-centre")
+async def command_centre(data: dict, current_user: dict = Depends(get_current_user)):
+    try:
+        result = await call_agent_command_centre(data.get("query", ""))
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Command centre query failed: {str(e)}")
 
 
 @router.get("/approvals")

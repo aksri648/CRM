@@ -6,6 +6,7 @@ from app.agents.state import MarketingState
 from app.agents.agents import (
     athena_agent, atlas_agent, sophia_agent, mercury_agent,
     nova_agent, darwin_agent, orion_agent, apollo_agent, sentinel_agent,
+    command_centre_agent,
 )
 
 
@@ -40,3 +41,10 @@ opportunity_graph_builder.add_edge("Nova", "Darwin")
 opportunity_graph_builder.add_edge("Darwin", "Sentinel")
 opportunity_graph_builder.add_edge("Sentinel", END)
 opportunity_graph = opportunity_graph_builder.compile(checkpointer=MemorySaver(), interrupt_before=["Sentinel"])
+
+
+command_centre_graph_builder = StateGraph(MarketingState)
+command_centre_graph_builder.add_node("CommandCentre", command_centre_agent)
+command_centre_graph_builder.add_edge(START, "CommandCentre")
+command_centre_graph_builder.add_edge("CommandCentre", END)
+command_centre_graph = command_centre_graph_builder.compile()

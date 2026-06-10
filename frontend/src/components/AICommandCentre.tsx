@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Send, Bot, Loader2, Activity, Cpu, Bell } from 'lucide-react'
-import { getPipelineStatus, listProposals } from '@/lib/api'
+import { getPipelineStatus, listProposals, commandCentreQuery } from '@/lib/api'
 
 interface Message {
   id: string
@@ -60,38 +60,23 @@ export function AICommandCentre({ onClose }: { onClose: () => void }) {
     setInput('')
     setSending(true)
 
-    setTimeout(() => {
-      const responses: Record<string, string> = {
-        status: pipelineStatus
-          ? `Queue depth: ${pipelineStatus.queue_depth || 0}, Retry queue: ${pipelineStatus.retry_queue_size || 0}, Failed: ${pipelineStatus.dlq_size || 0}. Worker status: ${pipelineStatus.worker_status || 'unknown'}.`
-          : 'Status data is currently unavailable.',
-        proposals: proposals.length > 0
-          ? `There ${proposals.length === 1 ? 'is 1 active proposal' : `are ${proposals.length} active proposals`}. ${proposals.map((p) => `${p.run_type}: ${p.status} (${p.created_at ? new Date(p.created_at).toLocaleString() : 'recent'})`).join('. ')}`
-          : 'No recent agent proposals found.',
-      }
-
-      const lower = userMsg.content.toLowerCase()
-      let reply: string
-      if (lower.includes('status') || lower.includes('pipeline') || lower.includes('health') || lower.includes('queue')) {
-        reply = responses.status
-      } else if (lower.includes('proposal') || lower.includes('agent') || lower.includes('run')) {
-        reply = responses.proposals
-      } else if (lower.includes('customer')) {
-        reply = `You have access to the full CRM. Use the Customers page to view and segment your audience, or try asking the AI Campaign Studio in the sidebar to generate a targeted campaign.`
-      } else if (lower.includes('campaign') || lower.includes('generate') || lower.includes('create')) {
-        reply = `To create a campaign, use the AI Campaign Studio in the sidebar. I can help you brainstorm goals, segments, and messaging strategies. What type of campaign are you looking to run?`
-      } else {
-        reply = `I understand you are asking about "${userMsg.content}". Currently, I can help with:\n- System status and pipeline monitoring\n- Agent proposals and campaign generation\n- Segment and customer queries\nWhat would you like to explore in more detail?`
-      }
-
+    try {
+      const result = await commandCentreQuery(userMsg.content)
       setMessages((m) => [...m, {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: reply,
+        content: result.response || 'I could not process that query.',
         timestamp: new Date(),
       }])
-      setSending(false)
-    }, 800)
+    } catch {
+      setMessages((m) => [...m, {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your request. Please try again.',
+        timestamp: new Date(),
+      }])
+    }
+    setSending(false)
   }
 
   const activeRuns = proposals.filter((p) => p.status === 'running' || p.status === 'pending')

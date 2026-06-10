@@ -176,6 +176,13 @@ export async function createABTest(data: {
   return request("/ab-tests", { method: "POST", body: JSON.stringify(data) })
 }
 
+export async function commandCentreQuery(query: string): Promise<{
+  response: string; reasoning?: string; confidence_score?: number;
+  supporting_data?: any; predicted_outcome?: any; agent_trace?: any[]
+}> {
+  return request("/agents/command-centre", { method: "POST", body: JSON.stringify({ query }) })
+}
+
 export async function listProducts(params?: {
   page?: number; page_size?: number; category?: string
 }): Promise<{ products: any[]; total: number; page: number; page_size: number }> {

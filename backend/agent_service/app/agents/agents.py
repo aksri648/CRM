@@ -130,6 +130,159 @@ async def apollo_agent(state: MarketingState) -> dict:
     return {**_agent_trace(state, "Apollo", output), "analytics": output, "reasoning": reasoning, "confidence": min(state.get("confidence", 1.0), 0.93)}
 
 
+async def command_centre_agent(state: MarketingState) -> dict:
+    from app.clients.app_client import (
+        fetch_pipeline_status, fetch_dashboard_stats, fetch_campaigns,
+        fetch_proposals, fetch_customers, fetch_lifecycle_distribution,
+        fetch_channel_analytics, fetch_opportunities,
+    )
+
+    query = state.get("goal", "").lower()
+    response_text = ""
+    supporting_data = {}
+    predicted_outcome = {}
+
+    if any(w in query for w in ["status", "pipeline", "health", "queue", "worker"]):
+        pipeline = await fetch_pipeline_status()
+        dashboard = await fetch_dashboard_stats()
+        active_campaigns = dashboard.get("active_campaigns", 0)
+        total_customers = dashboard.get("total_customers", 0)
+        qd = pipeline.get("queue_depth", 0)
+        rq = pipeline.get("retry_queue_size", 0)
+        dlq = pipeline.get("dlq_size", 0)
+        ws = pipeline.get("worker_status", "unknown")
+        response_text = (
+            f"**System Status**\n"
+            f"- Worker: {ws}\n"
+            f"- Queue Depth: {qd} messages\n"
+            f"- Retry Queue: {rq}\n"
+            f"- Dead Letter Queue: {dlq}\n"
+            f"- Active Campaigns: {active_campaigns}\n"
+            f"- Total Customers: {total_customers:,}"
+        )
+        supporting_data = {"pipeline": pipeline, "dashboard": {k: v for k, v in dashboard.items() if not isinstance(v, (list, dict))}}
+        predicted_outcome = {"system_healthy": ws == "healthy", "queue_load": "low" if qd < 50 else "medium" if qd < 200 else "high"}
+
+    elif any(w in query for w in ["customer", "audience", "people", "users"]):
+        search = None
+        for prefix in ["customer ", "audience "]:
+            if prefix in query:
+                search = query.split(prefix, 1)[1].strip()
+                break
+        page_size = 5
+        if search:
+            customers_data = await fetch_customers(search=search, page_size=page_size)
+        else:
+            customers_data = await fetch_customers(page_size=5)
+        lifecycle = await fetch_lifecycle_distribution()
+        customers = customers_data.get("customers", [])
+        total = customers_data.get("total", 0)
+        if search:
+            response_text = f"Found {total} customers matching '{search}':\n"
+        else:
+            response_text = f"**Customers Overview** — {total:,} total\n"
+        for c in customers[:5]:
+            name = f"{c.get('first_name', '')} {c.get('last_name', '')}".strip()
+            stage = c.get("lifecycle_stage", "unknown")
+            spent = c.get("total_spent", 0)
+            response_text += f"- {name} ({c.get('email', 'N/A')}) — {stage}, ₹{spent:,.0f} spent\n"
+        if lifecycle:
+            response_text += "\n**Lifecycle Distribution:**\n"
+            for entry in lifecycle[:6]:
+                if isinstance(entry, dict):
+                    response_text += f"- {entry.get('stage', entry.get('lifecycle_stage', 'unknown'))}: {entry.get('count', 0)}\n"
+        supporting_data = {"customers_sample": customers[:5], "total": total, "lifecycle": lifecycle}
+        predicted_outcome = {"customer_count": total, "segments_available": len(lifecycle) if lifecycle else 0}
+
+    elif any(w in query for w in ["campaign", "dispatch", "send"]):
+        campaigns_data = await fetch_campaigns(page_size=10)
+        campaigns = campaigns_data.get("campaigns", [])
+        total = campaigns_data.get("total", 0)
+        response_text = f"**Campaigns** — {total} total\n"
+        for c in campaigns[:5]:
+            name = c.get("name", "Unnamed")
+            status = c.get("status", "unknown")
+            channel = c.get("channel", "—")
+            response_text += f"- {name} ({channel}) — {status}\n"
+        supporting_data = {"campaigns_sample": campaigns[:5], "total": total}
+        predicted_outcome = {"campaign_count": total}
+
+    elif any(w in query for w in ["proposal", "agent", "run", "approval"]):
+        proposals = await fetch_proposals()
+        response_text = f"**Agent Proposals & Runs** — {len(proposals)} recent\n"
+        for p in proposals[:5]:
+            run_type = p.get("run_type", "unknown")
+            status = p.get("status", "unknown")
+            created = p.get("created_at", "")
+            if created:
+                created = created[:19].replace("T", " ")
+            response_text += f"- {run_type}: {status} ({created})\n"
+        supporting_data = {"proposals": proposals[:5], "total": len(proposals)}
+        predicted_outcome = {"active_runs": sum(1 for p in proposals if p.get("status") in ("running", "pending"))}
+
+    elif any(w in query for w in ["channel", "analytics", "performance"]):
+        channels = await fetch_channel_analytics()
+        response_text = f"**Channel Performance** — {len(channels)} channels\n"
+        for ch in channels:
+            name = ch.get("channel", "unknown")
+            sent = ch.get("sent_count", 0)
+            opened = ch.get("open_count", 0)
+            conv = ch.get("conversion_count", 0)
+            rev = ch.get("revenue", 0)
+            response_text += f"- {name}: {sent:,} sent, {opened:,} opened, {conv:,} converted, ₹{rev:,.0f} revenue\n"
+        supporting_data = {"channels": channels}
+        predicted_outcome = {"channel_count": len(channels)}
+
+    elif any(w in query for w in ["opportunity", "discover"]):
+        opp_data = await fetch_opportunities(page_size=10)
+        opportunities = opp_data.get("opportunities", [])
+        total = opp_data.get("total", 0)
+        response_text = f"**Opportunities** — {total} total\n"
+        for o in opportunities[:5]:
+            title = o.get("title", "Unnamed")
+            otype = o.get("opportunity_type", "general")
+            status = o.get("status", "pending")
+            rev = o.get("expected_revenue", 0)
+            response_text += f"- {title} ({otype}) — {status}, ₹{rev:,.0f}\n"
+        supporting_data = {"opportunities_sample": opportunities[:5], "total": total}
+        predicted_outcome = {"opportunity_count": total}
+
+    else:
+        dashboard = await fetch_dashboard_stats()
+        pipeline = await fetch_pipeline_status()
+        ws = pipeline.get("worker_status", "unknown")
+        total_customers = dashboard.get("total_customers", 0)
+        active_campaigns = dashboard.get("active_campaigns", 0)
+        response_text = (
+            f"I can help you with:\n"
+            f"1. **System Status** — Worker: {ws}, Queue: {pipeline.get('queue_depth', 0)}\n"
+            f"2. **Customers** — {total_customers:,} total, segmented by lifecycle stage\n"
+            f"3. **Campaigns** — {active_campaigns} active, across multiple channels\n"
+            f"4. **Channel Analytics** — Performance breakdown by channel\n"
+            f"5. **Agent Proposals** — AI campaign proposals and approvals\n"
+            f"6. **Opportunities** — AI-discovered marketing opportunities\n\n"
+            f"Try asking: \"What is the system status?\", \"Show me customers\", "
+            f"\"How are my campaigns doing?\", or \"List recent proposals\"."
+        )
+        supporting_data = {"capabilities": ["status", "customers", "campaigns", "analytics", "proposals", "opportunities"]}
+        predicted_outcome = {"fallback": True}
+
+    reasoning = f"Processed query: '{query}'. Intent matched and data fetched from App Service."
+    output = {
+        "reasoning": reasoning,
+        "confidence_score": 0.92,
+        "supporting_data": supporting_data,
+        "predicted_outcome": predicted_outcome,
+        "response": response_text,
+    }
+    return {
+        **_agent_trace(state, "CommandCentre", output),
+        "reasoning": reasoning,
+        "confidence": 0.92,
+        "metadata": {"command_centre_response": output},
+    }
+
+
 async def sentinel_agent(state: MarketingState) -> dict:
     trace = state.get("agent_trace", [])
     seg = state.get("segment", {})

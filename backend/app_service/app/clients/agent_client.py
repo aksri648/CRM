@@ -28,6 +28,18 @@ async def call_agent_discover_opportunities(run_id: str) -> dict:
         raise
 
 
+async def call_agent_command_centre(query: str) -> dict:
+    url = f"{settings.AGENT_SERVICE_URL}/api/v1/agents/command-centre"
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(url, json={"query": query})
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.RequestError as e:
+        logger.error("agent_command_centre_failed", error=str(e))
+        raise
+
+
 async def get_agent_health() -> bool:
     try:
         async with httpx.AsyncClient(timeout=5) as client:
