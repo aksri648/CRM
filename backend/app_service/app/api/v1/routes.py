@@ -255,8 +255,33 @@ async def generate_campaign(data: dict, db: AsyncSession = Depends(get_db), curr
         agent_result = await call_agent_generate_campaign(goal, str(agent_run.id))
         proposal = agent_result.get("proposal", {})
         agent_trace = agent_result.get("agent_trace", [])
-        segment_info = agent_result.get("segment", {})
-        channel_info = agent_result.get("channel_info", {})
+
+        def _agent_output(name):
+            return next((e.get("output", {}) for e in agent_trace if e.get("agent") == name), {})
+        def _agent_sd(name):
+            return _agent_output(name).get("supporting_data", {})
+        def _agent_po(name):
+            return _agent_output(name).get("predicted_outcome", {})
+
+        atlas_sd = _agent_sd("Atlas")
+        atlas_po = _agent_po("Atlas")
+        mercury_po = _agent_po("Mercury")
+        nova_sd = _agent_sd("Nova")
+        darwin_sd = _agent_sd("Darwin")
+
+        matched_segment = atlas_sd.get("matched_segment", {})
+        segment_info = {
+            "name": matched_segment.get("segment_name", proposal.get("segment", "AI Generated Segment")),
+            "criteria": matched_segment.get("criteria", {}),
+            "estimated_reach": atlas_po.get("estimated_reach") or matched_segment.get("estimated_reach", 0),
+            "key": atlas_sd.get("segment_key", matched_segment.get("key", "custom")),
+        }
+        channel_info = {
+            "channel": mercury_po.get("channel", proposal.get("channel", "email")),
+            "expected_open_rate": mercury_po.get("expected_open_rate"),
+            "expected_ctr": mercury_po.get("expected_ctr"),
+            "expected_revenue": None,
+        }
 
         for entry in agent_trace:
             decision = AgentDecision(
@@ -284,7 +309,7 @@ async def generate_campaign(data: dict, db: AsyncSession = Depends(get_db), curr
             segment_id=segment.id,
             channel=channel_info.get("channel", "email"),
             status="draft", ai_generated=True,
-            reasoning=agent_result.get("reasoning"),
+            reasoning=_agent_output("Sentinel").get("reasoning") or proposal.get("proposal_summary"),
             expected_reach=segment_info.get("estimated_reach"),
             expected_ctr=channel_info.get("expected_ctr"),
             expected_revenue=channel_info.get("expected_revenue"),
@@ -293,14 +318,23 @@ async def generate_campaign(data: dict, db: AsyncSession = Depends(get_db), curr
         db.add(campaign)
         await db.flush()
 
-        variants = agent_result.get("message_variants", [])
-        for i, v in enumerate(variants):
-            db.add(CampaignVariant(
-                campaign_id=campaign.id, name=v.get("variant_type", f"Variant {i}"),
-                variant_type=v.get("variant_type", chr(65 + i)),
-                subject_line=v.get("subject_line", ""), message_body=v.get("message_body", ""),
-                cta_text=v.get("cta_text", ""), style=v.get("style", "standard"),
-            ))
+        darwin_variants = darwin_sd.get("variants") or nova_sd.get("variants") or []
+        for i, v in enumerate(darwin_variants):
+            if isinstance(v, str):
+                db.add(CampaignVariant(
+                    campaign_id=campaign.id, name=f"Variant {i + 1}", variant_type=chr(65 + i),
+                    subject_line="", message_body=v, cta_text="", style="standard",
+                ))
+            else:
+                db.add(CampaignVariant(
+                    campaign_id=campaign.id,
+                    name=v.get("variant_type", v.get("name", f"Variant {i}")),
+                    variant_type=v.get("variant_type", chr(65 + i)),
+                    subject_line=v.get("subject_line", ""),
+                    message_body=v.get("message_body", v.get("message", v.get("text", ""))),
+                    cta_text=v.get("cta_text", ""),
+                    style=v.get("style", "standard"),
+                ))
 
         agent_run.status = "completed"
         agent_run.output_data = {"campaign_id": str(campaign.id)}
@@ -309,28 +343,42 @@ async def generate_campaign(data: dict, db: AsyncSession = Depends(get_db), curr
 
         approval = await create_approval(db, campaign.id, requested_by=current_user.get("sub"), reasoning=proposal)
 
-        message_variants = agent_result.get("message_variants", [])
-        supporting_message_variants = [
-            {
-                "variant": v.get("variant_type", f"Variant {i}"),
-                "message": v.get("message_body", ""),
-                "channel": v.get("channel", channel_info.get("channel", proposal.get("channel", "email"))),
-                "subject_line": v.get("subject_line", ""),
-                "cta_text": v.get("cta_text", ""),
-                "style": v.get("style", "standard"),
-            }
-            for i, v in enumerate(message_variants)
-        ]
+        audience = matched_segment.get("segment_name", proposal.get("segment", "—"))
+        audience_size = atlas_po.get("estimated_reach") or matched_segment.get("estimated_reach")
+
+        channel = mercury_po.get("channel") or proposal.get("channel", "—")
+
+        variants_sd = darwin_sd.get("variants") or nova_sd.get("variants") or []
+        supporting_message_variants = []
+        for i, v in enumerate(variants_sd):
+            if isinstance(v, str):
+                supporting_message_variants.append({
+                    "variant": f"Variant {i + 1}",
+                    "message": v,
+                    "channel": channel,
+                })
+            else:
+                supporting_message_variants.append({
+                    "variant": v.get("variant_type", v.get("name", f"Variant {i + 1}")),
+                    "message": v.get("message_body", v.get("message", v.get("text", ""))),
+                    "channel": v.get("channel", channel),
+                    "subject_line": v.get("subject_line", ""),
+                    "cta_text": v.get("cta_text", ""),
+                    "style": v.get("style", "standard"),
+                })
 
         supporting_data = {
-            "audience": segment_info.get("name", proposal.get("segment", "—")),
-            "audience_size": segment_info.get("estimated_reach"),
-            "channel": channel_info.get("channel", proposal.get("channel", "—")),
-            "predicted_open_rate": channel_info.get("expected_open_rate"),
-            "predicted_ctr": channel_info.get("expected_ctr"),
-            "predicted_revenue": channel_info.get("expected_revenue"),
+            "audience": audience,
+            "audience_size": audience_size,
+            "channel": channel,
+            "predicted_open_rate": mercury_po.get("expected_open_rate"),
+            "predicted_ctr": mercury_po.get("expected_ctr"),
+            "predicted_revenue": None,
             "message_variants": supporting_message_variants,
         }
+
+        sentinel_reasoning = _agent_output("Sentinel").get("reasoning")
+        reasoning = sentinel_reasoning or proposal.get("proposal_summary")
 
         return {
             "run_id": str(agent_run.id),
@@ -338,8 +386,8 @@ async def generate_campaign(data: dict, db: AsyncSession = Depends(get_db), curr
             "approval_id": str(approval.id),
             "proposal": proposal,
             "confidence_score": proposal.get("confidence_score"),
-            "reasoning": agent_result.get("reasoning") or proposal.get("proposal_summary"),
-            "predicted_outcome": channel_info.get("predicted_outcome_description") or proposal.get("proposal_summary"),
+            "reasoning": reasoning,
+            "predicted_outcome": proposal.get("proposal_summary"),
             "supporting_data": supporting_data,
             "agent_trace": agent_trace,
         }
