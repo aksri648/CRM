@@ -10,8 +10,6 @@ export function AuthSync() {
     let cancelled = false
     if (isSignedIn) {
       getToken().then((t) => { if (!cancelled && t) setToken(t) })
-    } else {
-      setToken(null)
     }
     return () => { cancelled = true }
   }, [isSignedIn, getToken, setToken])
