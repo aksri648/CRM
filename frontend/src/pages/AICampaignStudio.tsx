@@ -26,8 +26,8 @@ export function AICampaignStudio() {
   useEffect(() => {
     listSegments(1, 10).then(res => {
       if (res.segments?.length) {
-        const names = res.segments.map((s: any) => s.name).filter(Boolean)
-        if (names.length) setSuggestionChips(names.slice(0, 5))
+        const uniqueNames = [...new Set(res.segments.map((s: any) => s.name).filter(Boolean))]
+        if (uniqueNames.length) setSuggestionChips(uniqueNames.slice(0, 5))
       }
     }).catch(() => {})
   }, [])
