@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -9,6 +10,7 @@ import {
 import { getDashboardStats, listCampaigns } from '@/lib/api'
 
 export function Dashboard() {
+  const navigate = useNavigate()
   const [data, setData] = useState<any>(null)
   const [campaigns, setCampaigns] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -76,8 +78,8 @@ export function Dashboard() {
           <p className="xeno-header-subtitle">Overview of your campaign engagement performance</p>
         </div>
         <div className="xeno-header-actions">
-          <Button variant="outline" size="sm"><CloudUpload size={14} /> Export</Button>
-          <Button size="sm"><Rocket size={14} /> New Campaign</Button>
+          <Button variant="outline" size="sm" onClick={() => navigate('/customers')}><CloudUpload size={14} /> Import</Button>
+          <Button size="sm" onClick={() => navigate('/campaigns')}><Rocket size={14} /> New Campaign</Button>
         </div>
       </div>
 
@@ -87,15 +89,23 @@ export function Dashboard() {
           { icon: Layers, label: 'Build Segment', desc: 'Create audience segments', color: '#7c3aed', bg: '#faf5ff' },
           { icon: Rocket, label: 'Launch Campaign', desc: 'Send personalized messages', color: '#16a34a', bg: '#f0fdf4' },
           { icon: BarChart3, label: 'View Insights', desc: 'Analyze performance', color: '#f59e0b', bg: '#fffbeb' },
-        ].map((item, i) => (
-          <div key={i} className="xeno-quick-action">
+        ].map((item, i) => {
+          const paths: Record<string, string> = {
+            'Import Data': '/customers',
+            'Build Segment': '/segments',
+            'Launch Campaign': '/campaigns',
+            'View Insights': '/analytics',
+          }
+          return (
+          <div key={i} className="xeno-quick-action" onClick={() => navigate(paths[item.label])} style={{ cursor: 'pointer' }}>
             <div className="xeno-quick-action-icon" style={{ background: item.bg, color: item.color }}>
               <item.icon size={20} />
             </div>
             <div className="xeno-quick-action-label">{item.label}</div>
             <div className="xeno-quick-action-desc">{item.desc}</div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <div className="xeno-stats-grid">
