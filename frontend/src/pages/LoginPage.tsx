@@ -1,11 +1,35 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { SignIn } from '@clerk/clerk-react'
 import { useAppStore } from '@/store'
 import { Loader2, Eye, EyeOff, UserPlus, LogIn } from 'lucide-react'
 
-const API_BASE = 'https://xeno-api-worker.akshrivastav648.workers.dev/api/v1'
+declare const __API_URL__: string
+const API_BASE = `${__API_URL__}/api/v1`
+const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 export function LoginPage() {
+  if (clerkEnabled) {
+    return (
+      <div className="xeno-login-page">
+        <div className="xeno-login-card">
+          <div className="xeno-login-header">
+            <div className="xeno-login-logo">
+              <div className="xeno-login-logo-icon">X</div>
+              Xeno AI
+            </div>
+            <p className="xeno-login-tagline">Campaign Intelligence Platform</p>
+          </div>
+          <SignIn routing="hash" signUpUrl="/login" forceRedirectUrl="/" />
+        </div>
+      </div>
+    )
+  }
+
+  return <LegacyLoginForm />
+}
+
+function LegacyLoginForm() {
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')

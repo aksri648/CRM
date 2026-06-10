@@ -1,11 +1,33 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { useClerk } from '@clerk/clerk-react'
 import { useAppStore } from '@/store'
 import {
   LayoutDashboard, Wand2, Lightbulb, Users, Layers, Megaphone,
   FlaskConical, BarChart3, GitCompare, Bot, Settings, LogOut, Brain,
 } from 'lucide-react'
 import { AICommandCentre } from '@/components/AICommandCentre'
+
+const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+
+function ClerkLogoutButton({ zustandLogout }: { zustandLogout: () => void }) {
+  const { signOut } = useClerk()
+  return (
+    <button
+      className="xeno-sidebar-logout"
+      title="Sign out"
+      onClick={async () => {
+        try {
+          await signOut()
+        } finally {
+          zustandLogout()
+        }
+      }}
+    >
+      <LogOut size={16} />
+    </button>
+  )
+}
 
 const navItems = [
   { section: 'Main' },
@@ -84,9 +106,13 @@ export function Sidebar() {
           </div>
         </div>
         {token && (
-          <button className="xeno-sidebar-logout" title="Sign out" onClick={logout}>
-            <LogOut size={16} />
-          </button>
+          clerkEnabled ? (
+            <ClerkLogoutButton zustandLogout={logout} />
+          ) : (
+            <button className="xeno-sidebar-logout" title="Sign out" onClick={logout}>
+              <LogOut size={16} />
+            </button>
+          )
         )}
       </div>
       {showCC && <AICommandCentre onClose={() => setShowCC(false)} />}

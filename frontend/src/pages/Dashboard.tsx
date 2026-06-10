@@ -34,6 +34,7 @@ export function Dashboard() {
 
   if (loading) return <div>Loading...</div>
   if (error) return <div>Error: {error}</div>
+  if (!data) return <div>No dashboard data available.</div>
 
   const stats = [
     { title: 'Total Customers', value: (data.total_customers ?? 0).toLocaleString(), change: '+12.5%', icon: Users, color: '#3b82f6', bg: '#eff6ff', positive: true },
@@ -42,7 +43,7 @@ export function Dashboard() {
     { title: 'Revenue Attributed', value: `$${(data.total_revenue ?? 0).toLocaleString()}`, change: '+5.4%', icon: DollarSign, color: '#f59e0b', bg: '#fffbeb', positive: true },
   ]
 
-  const { avg_open_rate, avg_ctr, avg_conversion_rate } = data
+  const { avg_open_rate = 0, avg_ctr = 0, avg_conversion_rate = 0 } = data
 
   const insights = [
     {

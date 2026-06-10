@@ -1,9 +1,10 @@
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Header
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.models.communication import Communication, CommunicationEvent, DeliveryAttempt, CallbackEvent, QueueJob
 from app.schemas import (
@@ -14,6 +15,17 @@ from app.services.dispatch_service import dispatch_campaign
 from app.services.lifecycle_service import record_event, simulate_lifecycle
 from app.services.callback_service import send_callback_to_app
 from app.utils.logging import logger
+
+
+RESEND_EVENT_MAP = {
+    "email.sent": "sent",
+    "email.delivered": "delivered",
+    "email.opened": "opened",
+    "email.clicked": "clicked",
+    "email.bounced": "failed",
+    "email.complained": "failed",
+    "email.delivery_delayed": "delayed",
+}
 
 router = APIRouter()
 
@@ -105,9 +117,103 @@ async def receive_callback(data: CallbackRequest, db: AsyncSession = Depends(get
     callback = CallbackEvent(communication_id=data.communication_id, event_type=data.event_type, payload=data.model_dump())
     db.add(callback)
     cb_sent = await send_callback_to_app(data.model_dump())
-    if cb_sent: callback.delivered_to_app = True; callback.delivered_at = datetime.utcnow()
+    if cb_sent: callback.delivered_to_agent = True; callback.delivered_at = datetime.utcnow()
     await db.commit()
     return {"event_id": str(event.id), "callback_id": str(callback.id), "delivered_to_app": cb_sent}
+
+
+def _require_internal_token(x_internal_token: str | None) -> None:
+    expected = settings.INTERNAL_SHARED_TOKEN
+    if not expected or x_internal_token != expected:
+        raise HTTPException(status_code=401, detail="Invalid internal token")
+
+
+@router.post("/internal/process-batch")
+async def internal_process_batch(
+    payload: dict,
+    x_internal_token: str | None = Header(default=None, alias="X-Internal-Token"),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_internal_token(x_internal_token)
+    ids = payload.get("communication_ids") or []
+    if not isinstance(ids, list) or not ids:
+        raise HTTPException(status_code=400, detail="communication_ids required")
+
+    processed = 0
+    errors: list[dict] = []
+    for raw_id in ids:
+        try:
+            comm_id = uuid.UUID(raw_id)
+        except (ValueError, TypeError):
+            errors.append({"id": raw_id, "error": "invalid uuid"})
+            continue
+        try:
+            result = await simulate_lifecycle(db, comm_id)
+            if result:
+                processed += 1
+            else:
+                errors.append({"id": raw_id, "error": "communication not found"})
+        except Exception as exc:
+            logger.error("process_batch_item_failed", id=raw_id, error=str(exc))
+            errors.append({"id": raw_id, "error": str(exc)})
+
+    return {"processed": processed, "total": len(ids), "errors": errors}
+
+
+@router.post("/webhooks/resend")
+async def resend_webhook(request: Request, token: str = Query(default=""), db: AsyncSession = Depends(get_db)):
+    expected = settings.RESEND_WEBHOOK_SECRET
+    if not expected or token != expected:
+        raise HTTPException(status_code=401, detail="Invalid webhook token")
+
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON")
+
+    event_type_raw = body.get("type") or body.get("event")
+    mapped = RESEND_EVENT_MAP.get(event_type_raw)
+    if not mapped:
+        logger.info("resend_webhook_unhandled_type", type=event_type_raw)
+        return {"status": "ignored", "type": event_type_raw}
+
+    data = body.get("data") or {}
+    communication_id = None
+    for tag in data.get("tags") or []:
+        if tag.get("name") == "communication_id":
+            communication_id = tag.get("value")
+            break
+    if not communication_id:
+        external_id = data.get("email_id") or data.get("id")
+        if external_id:
+            result = await db.execute(select(Communication).where(Communication.external_id == external_id))
+            comm = result.scalar_one_or_none()
+            if comm:
+                communication_id = str(comm.id)
+
+    if not communication_id:
+        logger.warning("resend_webhook_no_communication", payload_keys=list(data.keys()))
+        return {"status": "ignored", "reason": "no communication_id"}
+
+    metadata = {"provider_event": event_type_raw}
+    if mapped == "failed":
+        metadata["reason"] = data.get("reason") or event_type_raw
+
+    event = await record_event(db, uuid.UUID(communication_id), mapped, metadata=metadata)
+    if not event:
+        return {"status": "ignored", "reason": "communication not found"}
+
+    result = await db.execute(select(Communication).where(Communication.id == uuid.UUID(communication_id)))
+    comm = result.scalar_one_or_none()
+    if comm:
+        await send_callback_to_app({
+            "communication_id": communication_id, "campaign_id": str(comm.campaign_id),
+            "customer_id": str(comm.customer_id), "event_type": mapped,
+            "timestamp": datetime.utcnow().isoformat(),
+            "metadata": metadata,
+        })
+
+    return {"status": "recorded", "event_type": mapped}
 
 
 @router.get("/pipeline/status")

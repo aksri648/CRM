@@ -13,22 +13,30 @@ import { PipelineMonitor } from '@/pages/PipelineMonitor'
 import { AgentProposals } from '@/pages/AgentProposals'
 import { Settings } from '@/pages/Settings'
 import { useAppStore } from '@/store'
+import { AuthSync } from '@/auth/AuthSync'
 import './app.css'
+
+const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 function App() {
   const token = useAppStore((s) => s.token)
 
   if (!token) {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
+      <>
+        {clerkEnabled && <AuthSync />}
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </>
     )
   }
 
   return (
-    <Routes>
+    <>
+      {clerkEnabled && <AuthSync />}
+      <Routes>
       <Route element={<AppLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/ai-studio" element={<AICampaignStudio />} />
@@ -45,6 +53,7 @@ function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
+    </>
   )
 }
 

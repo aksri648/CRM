@@ -7,11 +7,13 @@ export function AuthSync() {
   const setToken = useAppStore((s) => s.setToken)
 
   useEffect(() => {
+    let cancelled = false
     if (isSignedIn) {
-      getToken().then((t) => { if (t) setToken(t) })
+      getToken().then((t) => { if (!cancelled && t) setToken(t) })
     } else {
       setToken(null)
     }
+    return () => { cancelled = true }
   }, [isSignedIn, getToken, setToken])
 
   return null

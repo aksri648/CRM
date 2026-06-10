@@ -14,6 +14,14 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     ...options,
     headers: { "Content-Type": "application/json", ...authHeaders(), ...options.headers },
   })
+  if (res.status === 401) {
+    // Stale or missing token — drop session and bounce to login.
+    useAppStore.getState().logout()
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      window.location.href = "/login"
+    }
+    throw new Error("Session expired")
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }))
     throw new Error(body.detail || `Request failed: ${res.status}`)
@@ -181,6 +189,27 @@ export async function commandCentreQuery(query: string): Promise<{
   supporting_data?: any; predicted_outcome?: any; agent_trace?: any[]
 }> {
   return request("/agents/command-centre", { method: "POST", body: JSON.stringify({ query }) })
+}
+
+export interface CommandCentreMessage {
+  role: "user" | "assistant"
+  text: string
+  ts: number
+}
+
+export async function getCommandCentreHistory(): Promise<{ history: CommandCentreMessage[] }> {
+  return request("/command-centre/history")
+}
+
+export async function commandCentreChat(query: string): Promise<{
+  response: string; reasoning?: string; confidence_score?: number;
+  supporting_data?: any; predicted_outcome?: any; agent_trace?: any[]
+}> {
+  return request("/command-centre/chat", { method: "POST", body: JSON.stringify({ query }) })
+}
+
+export async function clearCommandCentreHistory(): Promise<{ status: string }> {
+  return request("/command-centre/history", { method: "DELETE" })
 }
 
 export async function listProducts(params?: {

@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Send, Bot, Loader2, Activity, Cpu, Bell } from 'lucide-react'
-import { getPipelineStatus, listProposals, commandCentreQuery } from '@/lib/api'
+import {
+  getPipelineStatus,
+  listProposals,
+  commandCentreChat,
+  getCommandCentreHistory,
+} from '@/lib/api'
 
 interface Message {
   id: string
@@ -45,6 +50,26 @@ export function AICommandCentre({ onClose }: { onClose: () => void }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    getCommandCentreHistory()
+      .then((res) => {
+        if (cancelled || !res.history?.length) return
+        const restored: Message[] = res.history.map((m) => ({
+          id: `${m.ts}-${m.role}`,
+          role: m.role,
+          content: m.text,
+          timestamp: new Date(m.ts),
+        }))
+        setMessages((current) => {
+          const welcome = current.find((c) => c.id === 'welcome')
+          return welcome ? [welcome, ...restored] : restored
+        })
+      })
+      .catch(() => { /* DO unavailable — keep welcome message only */ })
+    return () => { cancelled = true }
+  }, [])
+
+  useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
@@ -61,7 +86,7 @@ export function AICommandCentre({ onClose }: { onClose: () => void }) {
     setSending(true)
 
     try {
-      const result = await commandCentreQuery(userMsg.content)
+      const result = await commandCentreChat(userMsg.content)
       setMessages((m) => [...m, {
         id: crypto.randomUUID(),
         role: 'assistant',

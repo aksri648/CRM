@@ -20,6 +20,8 @@ class Settings(BaseSettings):
     AGENT_SERVICE_URL: str = "http://agent-service:8002"
     COMMUNICATION_SERVICE_URL: str = "http://communication-service:8003"
 
+    INTERNAL_SHARED_TOKEN: str = ""
+
     class Config:
         env_file = ".env"
 

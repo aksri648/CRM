@@ -47,7 +47,7 @@ export function Campaigns() {
     setLoading(true)
     setError(null)
     listCampaigns()
-      .then((res) => setCampaigns(res.campaigns))
+      .then((res) => setCampaigns(Array.isArray(res?.campaigns) ? res.campaigns : []))
       .catch((err) => setError(err?.message || 'Failed to load campaigns'))
       .finally(() => setLoading(false))
   }, [])

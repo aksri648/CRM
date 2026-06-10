@@ -1,5 +1,6 @@
+from operator import add
 from typing import Optional
-from typing_extensions import TypedDict
+from typing_extensions import Annotated, TypedDict
 
 
 class MarketingState(TypedDict):
@@ -16,6 +17,6 @@ class MarketingState(TypedDict):
     reasoning: Optional[str]
     confidence: Optional[float]
     metadata: dict
-    errors: list[str]
-    agent_trace: list
+    errors: Annotated[list[str], add]
+    agent_trace: Annotated[list, add]
     current_agent: str

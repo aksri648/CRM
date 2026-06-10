@@ -45,8 +45,11 @@ function formatCurrency(val: number): string {
   return '$' + val.toLocaleString('en-US')
 }
 
-function relativeDate(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime()
+function relativeDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—'
+  const t = new Date(dateStr).getTime()
+  if (isNaN(t)) return '—'
+  const diff = Date.now() - t
   const days = Math.floor(diff / 86400000)
   if (days === 0) return 'Today'
   if (days === 1) return '1d'
@@ -73,8 +76,8 @@ export function Customers() {
         search: opts.search || undefined,
         lifecycle_stage: opts.lifecycle_stage || undefined,
       })
-      setCustomers(data.customers)
-      setTotal(data.total)
+      setCustomers(Array.isArray(data?.customers) ? data.customers : [])
+      setTotal(typeof data?.total === 'number' ? data.total : 0)
     } catch (e: any) {
       setError(e.message || 'Failed to load customers')
     } finally {

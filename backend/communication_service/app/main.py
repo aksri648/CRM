@@ -1,3 +1,4 @@
+import asyncio
 import uvicorn
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -5,17 +6,41 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.api.v1.routes import router
-from app.database import create_tables
+from app.database import create_tables, async_session
 from app.utils.logging import setup_logging
+from app.workers.queue_processor import QueueProcessor
 
 logger = setup_logging()
+
+
+async def _queue_worker_loop():
+    while True:
+        try:
+            async with async_session() as session:
+                processor = QueueProcessor(session)
+                processed = await processor.process_batch()
+                if processed == 0:
+                    await asyncio.sleep(2)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            logger.error("queue_worker_error", error=str(exc))
+            await asyncio.sleep(5)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("communication_service_starting")
     await create_tables()
-    yield
+    worker_task = asyncio.create_task(_queue_worker_loop())
+    try:
+        yield
+    finally:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(title=settings.APP_NAME, version="1.0.0", lifespan=lifespan)

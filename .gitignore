@@ -30,3 +30,12 @@ worker/.wrangler/
 
 # Logs
 *.log
+
+# Claude Code working state and session-local notes
+.claude/
+.agents/
+memory.md
+memory2.md
+
+# Node
+node_modules/

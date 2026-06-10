@@ -1,5 +1,4 @@
 from langgraph.graph import StateGraph, END
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.constants import START
 
 from app.agents.state import MarketingState
@@ -24,7 +23,7 @@ campaign_graph_builder.add_edge("Nova", "Darwin")
 campaign_graph_builder.add_edge("Darwin", "Apollo")
 campaign_graph_builder.add_edge("Apollo", "Sentinel")
 campaign_graph_builder.add_edge("Sentinel", END)
-campaign_graph = campaign_graph_builder.compile(checkpointer=MemorySaver(), interrupt_before=["Sentinel"])
+campaign_graph = campaign_graph_builder.compile()
 
 
 opportunity_graph_builder = StateGraph(MarketingState)
@@ -40,7 +39,7 @@ opportunity_graph_builder.add_edge("Mercury", "Nova")
 opportunity_graph_builder.add_edge("Nova", "Darwin")
 opportunity_graph_builder.add_edge("Darwin", "Sentinel")
 opportunity_graph_builder.add_edge("Sentinel", END)
-opportunity_graph = opportunity_graph_builder.compile(checkpointer=MemorySaver(), interrupt_before=["Sentinel"])
+opportunity_graph = opportunity_graph_builder.compile()
 
 
 command_centre_graph_builder = StateGraph(MarketingState)

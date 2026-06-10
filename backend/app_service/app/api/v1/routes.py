@@ -7,7 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.config import settings
 from app.core.security import get_current_user, create_access_token
+from fastapi import Header
 from app.schemas import (
     AuthRequest, AuthResponse, CustomerResponse, CustomerListResponse,
     ProductResponse, OrderResponse, SegmentCreate, SegmentResponse,
@@ -442,6 +444,31 @@ async def receive_callback(data: CallbackEvent, db: AsyncSession = Depends(get_d
     return {"status": "processed", "event_type": data.event_type}
 
 
+def _require_internal_token(x_internal_token: str | None) -> None:
+    expected = settings.INTERNAL_SHARED_TOKEN
+    if not expected or x_internal_token != expected:
+        raise HTTPException(status_code=401, detail="Invalid internal token")
+
+
+@router.get("/internal/customers/{customer_id}/email")
+async def internal_get_customer_email(
+    customer_id: uuid.UUID,
+    x_internal_token: str | None = Header(default=None, alias="X-Internal-Token"),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_internal_token(x_internal_token)
+    result = await db.execute(select(Customer).where(Customer.id == customer_id))
+    customer = result.scalar_one_or_none()
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    return {
+        "id": str(customer.id),
+        "email": customer.email,
+        "first_name": customer.first_name,
+        "last_name": customer.last_name,
+    }
+
+
 @router.get("/pipeline/status", response_model=PipelineStatusResponse)
 async def pipeline_status(db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     return PipelineStatusResponse(worker_status="healthy")
@@ -471,7 +498,7 @@ async def list_proposals(db: AsyncSession = Depends(get_db), current_user: dict 
 @router.get("/ab-tests")
 async def list_ab_tests(page: int = Query(1, ge=1), page_size: int = Query(20, ge=1, le=100), status: str | None = None, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     from app.models.campaign import ABTest
-    query = select(ABTest)
+    query = select(ABTest).options(selectinload(ABTest.results))
     if status:
         query = query.where(ABTest.status == status)
     query = query.order_by(ABTest.created_at.desc())
@@ -489,7 +516,9 @@ async def list_ab_tests(page: int = Query(1, ge=1), page_size: int = Query(20, g
 @router.get("/ab-tests/{test_id}", response_model=ABTestResponse)
 async def get_ab_test(test_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
     from app.models.campaign import ABTest
-    result = await db.execute(select(ABTest).where(ABTest.id == test_id))
+    result = await db.execute(
+        select(ABTest).options(selectinload(ABTest.results)).where(ABTest.id == test_id)
+    )
     test = result.scalar_one_or_none()
     if not test:
         raise HTTPException(status_code=404, detail="A/B test not found")
@@ -507,7 +536,7 @@ async def create_ab_test(data: ABTestCreate, db: AsyncSession = Depends(get_db),
     )
     db.add(test)
     await db.commit()
-    await db.refresh(test)
+    await db.refresh(test, ["results"])
     return test
 
 

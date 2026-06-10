@@ -15,8 +15,24 @@
       "secret_name": "APP_SERVICE_URL"
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "COMMAND_CENTRE", "class_name": "CommandCentreDO" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CommandCentreDO"] }
+  ],
+  "workflows": [
+    {
+      "name": "campaign-pipeline",
+      "binding": "CAMPAIGN_PIPELINE",
+      "class_name": "CampaignPipeline"
+    }
+  ],
   "vars": {
     "DEFAULT_TTL": "300",
-    "CLERK_ISSUER": "https://capable-airedale-73.clerk.accounts.dev"
+    "CLERK_ISSUER": "https://capable-airedale-73.clerk.accounts.dev",
+    "COMM_SERVICE_URL": "https://xeno-crm-communication-service.onrender.com"
   }
 }

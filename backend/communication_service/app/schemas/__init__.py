@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class CommunicationCreate(BaseModel):
@@ -21,7 +21,7 @@ class CommunicationResponse(BaseModel):
     converted_at: datetime | None = None; failed_at: datetime | None = None
     failure_reason: str | None = None; retry_count: int = 0
     created_at: datetime | None = None
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class CampaignDispatchRequest(BaseModel):
@@ -35,15 +35,25 @@ class CampaignDispatchResponse(BaseModel):
 
 
 class EventCreate(BaseModel):
-    communication_id: uuid.UUID; event_type: str
-    timestamp: datetime | None = None; metadata: dict | None = None
+    communication_id: uuid.UUID
+    event_type: str
+    timestamp: datetime | None = None
+    metadata: dict | None = Field(default=None, alias="metadata")
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class EventResponse(BaseModel):
-    id: uuid.UUID; communication_id: uuid.UUID; event_type: str
-    timestamp: datetime | None = None; metadata: dict | None = None
+    id: uuid.UUID
+    communication_id: uuid.UUID
+    event_type: str
+    timestamp: datetime | None = None
+    metadata: dict | None = Field(
+        default=None,
+        validation_alias="event_metadata",
+        serialization_alias="metadata",
+    )
     created_at: datetime | None = None
-    class Config: from_attributes = True
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class CallbackRequest(BaseModel):
