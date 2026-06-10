@@ -59,11 +59,14 @@ async def call_agent_discover_opportunities(run_id: str) -> dict:
         raise
 
 
-async def call_agent_command_centre(query: str) -> dict:
+async def call_agent_command_centre(query: str, conversation_history: list[dict] | None = None) -> dict:
     url = f"{settings.AGENT_SERVICE_URL}/api/v1/agents/command-centre"
+    body: dict = {"query": query}
+    if conversation_history:
+        body["conversation_history"] = conversation_history
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(url, json={"query": query})
+            resp = await client.post(url, json=body)
             resp.raise_for_status()
             return resp.json()
     except httpx.RequestError as e:

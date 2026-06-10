@@ -86,7 +86,10 @@ export function AICommandCentre({ onClose }: { onClose: () => void }) {
     setSending(true)
 
     try {
-      const result = await commandCentreChat(userMsg.content)
+      const historyPayload = messages
+        .filter((m) => m.id !== 'welcome')
+        .map((m) => ({ role: m.role, text: m.content, ts: m.timestamp.getTime() }))
+      const result = await commandCentreChat(userMsg.content, historyPayload)
       setMessages((m) => [...m, {
         id: crypto.randomUUID(),
         role: 'assistant',

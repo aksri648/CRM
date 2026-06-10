@@ -100,3 +100,23 @@ async def fetch_opportunities(page: int = 1, page_size: int = 10) -> dict:
     except Exception as e:
         logger.warning("fetch_opportunities_failed", error=str(e))
         return {"opportunities": [], "total": 0}
+
+
+async def fetch_segments(page: int = 1, page_size: int = 20) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{settings.APP_SERVICE_URL}/api/v1/segments?page={page}&page_size={page_size}")
+            return resp.json() if resp.status_code == 200 else {"segments": [], "total": 0}
+    except Exception as e:
+        logger.warning("fetch_segments_failed", error=str(e))
+        return {"segments": [], "total": 0}
+
+
+async def fetch_ab_tests(page: int = 1, page_size: int = 10) -> dict:
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(f"{settings.APP_SERVICE_URL}/api/v1/ab-tests?page={page}&page_size={page_size}")
+            return resp.json() if resp.status_code == 200 else {"ab_tests": [], "total": 0}
+    except Exception as e:
+        logger.warning("fetch_ab_tests_failed", error=str(e))
+        return {"ab_tests": [], "total": 0}

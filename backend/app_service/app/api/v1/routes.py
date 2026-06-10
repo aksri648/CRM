@@ -470,7 +470,10 @@ async def command_centre(data: dict, current_user: dict = Depends(get_current_us
 @router.post("/command-centre/chat")
 async def command_centre_chat(data: dict, current_user: dict = Depends(get_current_user)):
     try:
-        result = await call_agent_command_centre(data.get("query", ""))
+        result = await call_agent_command_centre(
+            data.get("query", ""),
+            conversation_history=data.get("conversation_history"),
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Command centre chat failed: {str(e)}")

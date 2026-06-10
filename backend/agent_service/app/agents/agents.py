@@ -420,44 +420,64 @@ async def command_centre_agent(state: MarketingState) -> dict:
     from app.clients.app_client import (
         fetch_pipeline_status, fetch_dashboard_stats, fetch_campaigns,
         fetch_proposals, fetch_customers, fetch_lifecycle_distribution,
-        fetch_channel_analytics, fetch_opportunities,
+        fetch_channel_analytics, fetch_opportunities, fetch_segments,
+        fetch_ab_tests,
     )
 
     query = state.get("goal", "") or ""
     query_l = query.lower()
     context: dict = {}
     intent = "general"
+    conversation_history = state.get("metadata", {}).get("conversation_history", []) or []
 
-    # Step 1: intent detection (still keyword-based so we know which data to fetch)
-    if any(w in query_l for w in ["status", "pipeline", "health", "queue", "worker"]):
+    # Step 1: intent detection (keyword-based + LLM fallback)
+    if any(w in query_l for w in ["status", "pipeline", "health", "queue", "worker", "system"]):
         intent = "status"
         context["pipeline"] = await fetch_pipeline_status()
         context["dashboard"] = await fetch_dashboard_stats()
-    elif any(w in query_l for w in ["customer", "audience", "people", "users"]):
+    elif any(w in query_l for w in ["customer", "audience", "people", "users", "user", "contact"]):
         intent = "customers"
         search = None
-        for prefix in ["customer ", "audience "]:
+        for prefix in ["customer ", "audience ", "find ", "search ", "show me "]:
             if prefix in query_l:
                 search = query_l.split(prefix, 1)[1].strip()
                 break
-        context["customers"] = await fetch_customers(search=search, page_size=5) if search else await fetch_customers(page_size=5)
+        context["customers"] = await fetch_customers(search=search, page_size=10) if search else await fetch_customers(page_size=10)
         context["lifecycle_distribution"] = await fetch_lifecycle_distribution()
-    elif any(w in query_l for w in ["campaign", "dispatch", "send"]):
+    elif any(w in query_l for w in ["campaign", "dispatch", "send", "message", "notification"]):
         intent = "campaigns"
         context["campaigns"] = await fetch_campaigns(page_size=10)
-    elif any(w in query_l for w in ["proposal", "agent", "run", "approval"]):
+    elif any(w in query_l for w in ["proposal", "agent", "run", "approval", "pending"]):
         intent = "proposals"
         context["proposals"] = await fetch_proposals()
-    elif any(w in query_l for w in ["channel", "analytics", "performance"]):
+    elif any(w in query_l for w in ["channel", "analytics", "performance", "metric", "conversion"]):
         intent = "analytics"
         context["channel_analytics"] = await fetch_channel_analytics()
-    elif any(w in query_l for w in ["opportunity", "discover"]):
+    elif any(w in query_l for w in ["opportunity", "discover", "recommend", "suggestion"]):
         intent = "opportunities"
         context["opportunities"] = await fetch_opportunities(page_size=10)
-    else:
-        intent = "overview"
-        context["pipeline"] = await fetch_pipeline_status()
+    elif any(w in query_l for w in ["segment", "group", "filter", "target"]):
+        intent = "segments"
+        context["segments"] = await fetch_segments(page_size=10)
+    elif any(w in query_l for w in ["test", "experiment", "ab", "variant", "split"]):
+        intent = "ab_tests"
+        context["ab_tests"] = await fetch_ab_tests(page_size=10)
+    elif any(w in query_l for w in ["revenue", "sales", "income", "money", "profit"]):
+        intent = "revenue"
         context["dashboard"] = await fetch_dashboard_stats()
+        context["channel_analytics"] = await fetch_channel_analytics()
+    elif any(w in query_l for w in ["report", "summary", "overview", "what's happening", "how are"]):
+        intent = "overview"
+        context["dashboard"] = await fetch_dashboard_stats()
+        context["pipeline"] = await fetch_pipeline_status()
+        context["campaigns"] = await fetch_campaigns(page_size=5)
+    else:
+        intent = "general"
+        context["dashboard"] = await fetch_dashboard_stats()
+        context["pipeline"] = await fetch_pipeline_status()
+        context["campaigns"] = await fetch_campaigns(page_size=5)
+        context["customers"] = await fetch_customers(page_size=5)
+        context["segments"] = await fetch_segments(page_size=5)
 
     trimmed = _trim_for_context(context)
     response_text = ""
@@ -466,10 +486,20 @@ async def command_centre_agent(state: MarketingState) -> dict:
     # Step 2: render response. Prefer LLM, fall back to deterministic templates.
     if llm_available():
         try:
+            # Build conversation context for LLM
+            history_text = ""
+            if conversation_history:
+                recent = conversation_history[-6:]  # Last 3 exchanges
+                history_text = "\n\n".join([
+                    f"{'User' if m.get('role') == 'user' else 'Assistant'}: {m.get('text', m.get('content', ''))}"
+                    for m in recent
+                ])
+                history_text = f"\n\nConversation history:\n{history_text}"
+
             result: CommandCentreOutput = await _structured_call(
                 COMMAND_CENTRE_SYSTEM,
                 (
-                    f"Operator question: {query}\n\n"
+                    f"Operator question: {query}{history_text}\n\n"
                     f"Detected intent: {intent}\n\n"
                     f"Live system data (JSON):\n{json.dumps(trimmed, default=str)}"
                 ),

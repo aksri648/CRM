@@ -114,10 +114,13 @@ async def command_centre(data: dict):
     if not query:
         raise HTTPException(status_code=400, detail="Query is required")
 
+    conversation_history = data.get("conversation_history", [])
+
     try:
         initial_state = MarketingState(
-            goal=query, approval_status="pending", metadata={}, errors=[],
-            agent_trace=[], current_agent="CommandCentre",
+            goal=query, approval_status="pending",
+            metadata={"conversation_history": conversation_history},
+            errors=[], agent_trace=[], current_agent="CommandCentre",
         )
         config = {"configurable": {"thread_id": str(uuid.uuid4())}}
         result = await command_centre_graph.ainvoke(initial_state, config)

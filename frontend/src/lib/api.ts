@@ -201,11 +201,17 @@ export async function getCommandCentreHistory(): Promise<{ history: CommandCentr
   return request("/command-centre/history")
 }
 
-export async function commandCentreChat(query: string): Promise<{
+export async function commandCentreChat(
+  query: string,
+  conversation_history?: { role: "user" | "assistant"; text: string; ts: number }[]
+): Promise<{
   response: string; reasoning?: string; confidence_score?: number;
   supporting_data?: any; predicted_outcome?: any; agent_trace?: any[]
 }> {
-  return request("/command-centre/chat", { method: "POST", body: JSON.stringify({ query }) })
+  return request("/command-centre/chat", {
+    method: "POST",
+    body: JSON.stringify({ query, conversation_history: conversation_history || [] }),
+  })
 }
 
 export async function clearCommandCentreHistory(): Promise<{ status: string }> {
